@@ -5,6 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <tuple>
+#include "trie_map.h"
 
 using std::vector;
 using std::tuple;
@@ -12,31 +13,24 @@ using std::tuple;
 class rgg {
 	
 	public:		
-		//Si intersection with Pi; I don't know what Pi is
-		typedef vector<int> pureStrategySet;
+		typedef vector<int> pureStrategy;
 		typedef vector<pureStrategySet> pureStrategyProfile;
 		
 		int numPlayers;
 		int numResourceNodes;
-		//need to represent Ax <= b
-		vector<vector<int>> a;
-		vector<int> x;
-		vector<int> b;
-		//the graph
+		vector<vector<vector<int>>> a's;
+		vector<vector<int>> b's;
 		vector<vector<int> neighbors;
 		
-		//constructor -- Why all references?
 		rgg(int numPlayers, int numResourceNodes,
-			vector<vector<int>>& pureStrategies,
 			vector<vector<int>>& a,
-			vector<int>& x,
 			vector<int>& b,
-			vector<vector<int>>& neighbors);
+			vector<vector<int>>& neighbors,
+			trie_map<double> vector<int>); 	
 		
-		//public methods or getting data
 		int getNumPlayers() {return numPlayers;}
 		int getNumResourceNodes() {return numResourceNodes;}
 		
-		tuple<bool, int> isFeasible(pureStrategySet p);
-		double	utility(pureStrategyProfile &p);
+		tuple<bool, int> isFeasible(int playerID, pureStrategy p);
+		double utility(int playerID, pureStrategyProfile &p);
 }
