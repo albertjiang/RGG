@@ -26,7 +26,7 @@ class rgg {
 			vector<vector<int>>& a,
 			vector<int>& b,
 			vector<vector<int>>& neighbors,
-			trie_map<double> vector<int>); 	
+			vector<trie_map<double>> utilityFunctions); 	
 		
 		int getNumPlayers() {return numPlayers;}
 		int getNumResourceNodes() {return numResourceNodes;}
