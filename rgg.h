@@ -15,16 +15,21 @@ class rgg {
 	public:		
 		typedef vector<int> pureStrategy;
 		typedef vector<pureStrategySet> pureStrategyProfile;
-		
+		typedef vector<vector<int>>	intMatrix;
+	
 		int numPlayers;
 		int numResourceNodes;
-		vector<vector<vector<int>>> a's;
-		vector<vector<int>> b's;
-		vector<vector<int> neighbors;
+		vector<intMatrix> eqMatrices;
+		vector<vector<int>> eqVectors;
+		vector<intMatrix> leMatrices;
+		vector<vector<int>> leVectors;
+		vector<vector<int>> neighbors;
 		
 		rgg(int numPlayers, int numResourceNodes,
-			vector<vector<int>>& a,
-			vector<int>& b,
+			vector<intMatrix>& eqMatrices,
+			vector<int>& eqVectors,
+			vector<intMatrix>& leMatrices,
+			vector<int>& leVectors,
 			vector<vector<int>>& neighbors,
 			vector<trie_map<double>> utilityFunctions); 	
 		
