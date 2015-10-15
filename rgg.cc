@@ -16,9 +16,9 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 	//total config value at index whenever a resource node is
 	//found in the profile.
 	for(int a=0; a<p.size(); a++){
-    for(int b=0; b<p[a].size(); b++) {
-      totalConfig[pureStrategyProfile[a][b]] += 1;
-    }
+		for(int b=0; b<p[a].size(); b++) {
+			totalConfig[pureStrategyProfile[a][b]] += 1;
+		}
 	}
 	for(int i=0; i<numResourceNodes; i++) {
 			if(p[playerId][i]) {
@@ -26,12 +26,12 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 				for(int j=0; j<neighbors[i].size(); j++) {
 					localConfig[j] = totalConfig[neighbors[i][j]];
 				}
-        trie_map<double> p = findExact(localConfig);
+				trie_map<double> p = findExact(localConfig);
 				if(currMap == data.end()) {
-          cout << "Error! Local Configuration Not Found";
-          exit(1);
-        } else {
-          u += p->second;
+					cout << "Error! Local Configuration Not Found";
+					exit(1);
+				} else {
+					u += p->second;
 				}
 			}
 	}
