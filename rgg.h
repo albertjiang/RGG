@@ -30,8 +30,6 @@ class rgg {
 			vector<vector<int>>& neighbors,
 			vector<trie_map<double>> utilityFunctions);
 
-    //I don't understand the similar function in the AGG class.
-    //Where is the seed being used?
     static makeRandomRGG(int numPlayers, int numResourceNodes,
 			vector<intMatrix>& eqMatrices,
 			vector<int>& eqVectors,
@@ -45,3 +43,6 @@ class rgg {
 		tuple<bool, int> isFeasible(int playerID, pureStrategy p);
 		double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
 }
+
+//use gray composition to create random utility function
+// size += 1
