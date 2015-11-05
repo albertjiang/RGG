@@ -4,19 +4,38 @@
 
 using std::valarray;
 
-valarray<bool> isFeasible(int playerID, pureStrategy p) {
-  intmatrix a = eqMatrices[playerID];
-  for(int i=0; i<a.size(); i++){
-    vector<int> curr;
-    for(int j=0; j<a[i].size(); j++) {
-      curr.push_back(a[i][j] * p[j]);
-    }
-    valarray<int> leftside(curr.data(), curr.size());
-    valarray<int> rightside(eqVector[playerID].data(), eqVector[playerID].size());
-    return leftside <= rightside;  
-   // valarray<bool> results = (a[i] * p < eqVector[playerId]);
-  }
+tuple(bool, valarray<bool>, valarray<bool>) isFeasible(int playerID, pureStrategy p) {
 
+  intmatrix a = eqMatrices[playerID];
+  vector<int> sums;
+  for(int i=0; i<a.size(); i++){
+    vector<int> dotProdVec;
+    for(int j=0; j<a[i].size(); j++) {
+      dotProdVec.push_back(a[i][j] * p[j]);
+    }
+    sums.push_back(dotProd.sum());
+  }
+  valarray<int> leftside(sums.data(), sums.size());
+  valarray<int> rightside(eqVectors[playerID].data(), eqVectors[playerID].size());
+  valarray<bool> eqRet = (leftside == rightside);
+
+  intmatrix a2 = ltMatrices[playerID];
+  vector<int> sums2;
+  for(int i=0; i<a2.size(); i++){
+    vector<int> dotProdVec2;
+    for(int j=0; j<a2[i].size(); j++) {
+      dotProdVec2.push_back(a[i][j] * p[j]);
+    }
+    sums.push_back(dotProdVec2.sum());
+  }
+  valarray<int> leftside2(sums2.data(), sums2.size());
+  valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
+  valarray<bool> ltRet = (leftside2 <= rightside2);
+
+  bool feasible = (eqRet.sum()==eqRet.size()) && (ltRet.sum()==ltRet.size());
+  return{feasible, eqRet, ltRet};
+}
+// valarray<bool> results = (a[i] * p < eqVector[playerId]);
 
 double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   double u=0;
@@ -24,7 +43,7 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   for(int a=0; a<p.size(); a++){
     for(int b=0; b<p[a].size(); b++) {
       totalConfig[b] += pureStrategyProfile[a][b];
-    } 
+    }
   }
   for(int i=0; i<numResourceNodes; i++) {
     if(p[playerId][i] == 1) {
@@ -45,6 +64,19 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 }
 
 
+static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
+			vector<intMatrix>& eqMatrices,
+			vector<int>& eqVectors,
+			vector<intMatrix>& ltMatrices,
+			vector<int>& ltVectors,
+			vector<vector<int>>& neighbors) {
+
+
+
+
+
+      return new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, letVectors, neighbors, utilityFunctions);
+}
 
 
 //we will possibly test this with a makeRandomRGG function

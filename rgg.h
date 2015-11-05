@@ -30,7 +30,7 @@ class rgg {
 			vector<vector<int>>& neighbors,
 			vector<trie_map<double>> utilityFunctions);
 
-    static makeRandomRGG(int numPlayers, int numResourceNodes,
+    static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
 			vector<intMatrix>& eqMatrices,
 			vector<int>& eqVectors,
 			vector<intMatrix>& ltMatrices,
