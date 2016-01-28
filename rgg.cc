@@ -1,10 +1,14 @@
 #include <iostream>
-#include "rgg.h"
+#include <utility>
 #include <valarray>
+#include <math.h>
+#include "rgg.h"
+#include "proj_func.h"
+#include "trie_map.h"
 
 using std::valarray;
 
-tuple(bool, valarray<bool>, valarray<bool>) isFeasible(int playerID, pureStrategy p) {
+/*tuple(bool, valarray<bool>, valarray<bool>) isFeasible(int playerID, pureStrategy p) {
 
   intmatrix a = eqMatrices[playerID];
   vector<int> sums;
@@ -62,7 +66,7 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   }
   return u;
 }
-
+*/
 
 static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
 			vector<intMatrix>& eqMatrices,
@@ -71,17 +75,48 @@ static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
 			vector<int>& ltVectors,
 			vector<vector<int>>& neighbors) {
 
+  vector<vector<int>> configs = configurations(numPlayers, neighbors.size());
+  trie_map<double> utilityFunctions;
+  for(int i=0; i<configs.size(); i++) {
+    utilityFunctions.insert(std::make_pair(configs[i], 4.3));
+  }
 
+  rgg* r = new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, letVectors, neighbors, utilityFunctions);
+  return r;
+}
 
+vector<vector<int>> configurations(int numPlayers, int numDigits) {
+   vector<int> vec(numDigits, 0);
+   vector<vector<int>> solution;
+   solution = Rec(vec, solution, numPlayers, numDigits);
+   return solution;
+}
 
-
-      return new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, letVectors, neighbors, utilityFunctions);
+void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDigits) {
+  if(numDigits ==0) {
+    retVec.push_back(vec);
+  }else {
+    for(int i=0; i<=numPlayers; i++) {
+      int index = vec.size()-numDigits;
+      vec[index] = i;
+      Rec(vec, retVec, numPlayers, numDigits-1);
+    }
+  }
 }
 
 
-//we will possibly test this with a makeRandomRGG function
-//random utilities
 //you can have different kinds of graphs. self loop graph would give us congestion games, the other thing we can have is a complete graph.
 //don't need a complex generator, just add to gambits' generator.
 //generating random utilities. don't need to generate different graphs.
-//for now just have two graphs complete graph and self loop graph.
+//for now just have two graphs complete graph and self loop graph
+
+
+//marginal vectors - storing a value between 0 and 1 for chance that a particular factor is chosen.
+//small support vectors
+
+//heuristics for nash equilibrium
+
+//several candidates for solving
+//fictitious play algorithm - using marginal vector form, 
+//iterated best response, play best responses against each other and hope
+//it converges. requires integer linear programs
