@@ -3,11 +3,8 @@
 #include <valarray>
 #include <math.h>
 #include "rgg.h"
-#include "proj_func.h"
-#include "trie_map.h"
 
 using std::valarray;
-
 /*tuple(bool, valarray<bool>, valarray<bool>) isFeasible(int playerID, pureStrategy p) {
 
   intmatrix a = eqMatrices[playerID];
@@ -68,32 +65,8 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 }
 */
 
-static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
-			vector<intMatrix>& eqMatrices,
-			vector<int>& eqVectors,
-			vector<intMatrix>& ltMatrices,
-			vector<int>& ltVectors,
-			vector<vector<int>>& neighbors) {
-
-  vector<vector<int>> configs = configurations(numPlayers, neighbors.size());
-  trie_map<double> utilityFunctions;
-  for(int i=0; i<configs.size(); i++) {
-    utilityFunctions.insert(std::make_pair(configs[i], 4.3));
-  }
-
-  rgg* r = new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, letVectors, neighbors, utilityFunctions);
-  return r;
-}
-
-vector<vector<int>> configurations(int numPlayers, int numDigits) {
-   vector<int> vec(numDigits, 0);
-   vector<vector<int>> solution;
-   solution = Rec(vec, solution, numPlayers, numDigits);
-   return solution;
-}
-
 void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDigits) {
-  if(numDigits ==0) {
+  if(numDigits==0) {
     retVec.push_back(vec);
   }else {
     for(int i=0; i<=numPlayers; i++) {
@@ -104,6 +77,27 @@ void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDi
   }
 }
 
+vector<vector<int>> configurations(int numPlayers, int numDigits) {
+   vector<int> vec(numDigits, 0);
+   vector<vector<int>> solution;
+   Rec(vec, solution, numPlayers, numDigits);
+   return solution;
+}
+
+rgg* rgg::makeRandomRGG(int numPlayers, int numResourceNodes,
+			vector<intMatrix> eqMatrices,
+			vector<vector<int>> eqVectors,
+			vector<intMatrix> ltMatrices,
+			vector<vector<int>> ltVectors,
+			vector<vector<int>> neighbors) {
+  vector<vector<int>> configs = configurations(numPlayers, neighbors.size());
+  trie_map<double> utilityFunctions;
+  for(int i=0; i<configs.size(); i++) {
+    utilityFunctions.insert(std::make_pair(configs[i], 4.3));
+  }
+  rgg* r = new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, ltVectors, neighbors, utilityFunctions);
+  return r;
+}
 
 //you can have different kinds of graphs. self loop graph would give us congestion games, the other thing we can have is a complete graph.
 //don't need a complex generator, just add to gambits' generator.
