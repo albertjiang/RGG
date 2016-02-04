@@ -64,6 +64,22 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   return u;
 }
 */
+rgg::rgg(int newNumPlayers, int newNumResourceNodes,
+      vector<intMatrix> newEqMatrices,
+      vector<vector<int>> newEqVectors,
+      vector<intMatrix> newLtMatrices,
+      vector<vector<int>> newLtVectors,
+      vector<vector<int>> newNeighbors,
+      trie_map<double> newUtilFuncs) {
+  numPlayers = newNumPlayers;
+  numResourceNodes = newNumResourceNodes;
+  eqMatrices = newEqMatrices;
+  eqVectors = newEqVectors;
+  ltVectors = newLtVectors;
+  neighbors = newNeighbors;
+  utilityFunctions = newUtilFuncs;
+  
+}
 
 void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDigits) {
   if(numDigits==0) {
@@ -98,6 +114,10 @@ rgg* rgg::makeRandomRGG(int numPlayers, int numResourceNodes,
   rgg* r = new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, ltVectors, neighbors, utilityFunctions);
   return r;
 }
+
+//int main() {
+ // return 0;
+//}
 
 //you can have different kinds of graphs. self loop graph would give us congestion games, the other thing we can have is a complete graph.
 //don't need a complex generator, just add to gambits' generator.

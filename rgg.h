@@ -24,6 +24,7 @@ class rgg {
 		vector<intMatrix> ltMatrices;
 		vector<vector<int>> ltVectors;
 		vector<vector<int>> neighbors;
+    trie_map<double> utilityFunctions;
 
 		rgg(int numPlayers, int numResourceNodes,
 			vector<intMatrix> eqMatrices,
