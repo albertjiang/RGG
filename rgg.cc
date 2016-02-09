@@ -4,35 +4,47 @@
 #include "rgg.h"
 
 using std::valarray;
+using std::cout;
+
 std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy p) {
-  rgg::intMatrix a = eqMatrices[playerID];
-  vector<int> sums;
-  for(int i=0; i<a.size(); i++){
-    int sum = 0;
-    for(int j=0; j<a[i].size(); j++) {
-      sum += a[i][j] * p[j];
-    }
-    sums.push_back(sum);
+  if(eqMatrices.size() == 0){
+    cout << "Error: No Equality Matrices" << endl;
+    return std::make_tuple(false, valarray<bool>{}, valarray<bool>{});
   }
-  valarray<int> leftside(sums.data(), sums.size());
-  valarray<int> rightside(eqVectors[playerID].data(), eqVectors[playerID].size());
-  valarray<bool> eqRet = (leftside == rightside);
-
-  rgg::intMatrix a2 = ltMatrices[playerID];
-  vector<int> sums2;
-  for(int i=0; i<a2.size(); i++){
-    int sum2 = 0;
-    for(int j=0; j<a2[i].size(); j++) {
-      sum2 += a[i][j] * p[j];
-    }
-    sums2.push_back(sum2);
+  else if(ltMatrices.size() == 0) {
+    cout << "Error: No Less Than Matrices" << endl;
+    return std::make_tuple(false, valarray<bool>{}, valarray<bool>{});
   }
-  valarray<int> leftside2(sums2.data(), sums2.size());
-  valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
-  valarray<bool> ltRet = (leftside2 <= rightside2);
+  else {
+    rgg::intMatrix a = eqMatrices[playerID];
+    vector<int> sums;
+    for(int i=0; i<a.size(); i++){
+      int sum = 0;
+      for(int j=0; j<a[i].size(); j++) {
+        sum += a[i][j] * p[j];
+      }
+      sums.push_back(sum);
+    }
+    valarray<int> leftside(sums.data(), sums.size());
+    valarray<int> rightside(eqVectors[playerID].data(), eqVectors[playerID].size());
+    valarray<bool> eqRet = (leftside == rightside);
 
-  bool feasible = (eqRet.sum()==eqRet.size()) && (ltRet.sum()==ltRet.size());
-  return std::make_tuple(feasible, eqRet, ltRet);
+    rgg::intMatrix a2 = ltMatrices[playerID];
+    vector<int> sums2;
+    for(int i=0; i<a2.size(); i++){
+      int sum2 = 0;
+      for(int j=0; j<a2[i].size(); j++) {
+        sum2 += a[i][j] * p[j];
+      }
+      sums2.push_back(sum2);
+    }
+    valarray<int> leftside2(sums2.data(), sums2.size());
+    valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
+    valarray<bool> ltRet = (leftside2 <= rightside2);
+
+    bool feasible = (eqRet.sum()==eqRet.size()) && (ltRet.sum()==ltRet.size());
+    return std::make_tuple(feasible, eqRet, ltRet);
+  }
 }
 // valarray<bool> results = (a[i] * p < eqVector[playerId]);
 double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
@@ -114,7 +126,7 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
   return r;
 }
 
-void rgg::setLeftToDefault(int m) {
+void rgg::addDefaultLTMatrix(int m) {
     vector<vector<int>> newLTMatrix(2*m, vector<int>(m));
     for(int i=0; i<m; i++) {
       newLTMatrix[i][i] = 1;

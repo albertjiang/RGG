@@ -32,7 +32,7 @@ int main() {
   }*/
   cout << (*(r->utilityFunctions[0].find(newneighbors[0]))).second << endl;
   
-  r->setLeftToDefault(r->getNumPlayers());
+  r->addDefaultLTMatrix(r->getNumPlayers());
   for(auto a: (r->ltMatrices)[0]) { 
     for(auto b: a){
       cout << b << " ";
@@ -43,7 +43,8 @@ int main() {
     cout << a << endl;
   }
 
-  cout << std::get<0>(r->isFeasible(0, vector<int>{0,1,2})); 
+  r->isFeasible(0, vector<int>{0,1,2});
+  //cout << std::get<0>(r->isFeasible(0, vector<int>{0,1,2})); 
 
   return 0;
 } 

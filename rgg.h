@@ -48,7 +48,7 @@ class rgg {
     tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy p);
 		double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
     
-    void setLeftToDefault(int m);
+    void addDefaultLTMatrix(int m);
  
 };
 
