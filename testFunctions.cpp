@@ -14,15 +14,36 @@ int main() {
   vector<int> t {1,2,3};
   m.insert(std::make_pair(t, 2.4));
   cout << (*m.find(t)).second;*/
-  vector<vector<vector<int>>> eqMatrices{};
-  vector<vector<vector<int>>> ltMatrices{};
-  vector<vector<int>> eqVectors{};
-  vector<vector<int>> ltVectors{};
-  vector<vector<int>> neighbors{};
-  rgg* r = rgg::makeRandomRGG(2, 4, eqMatrices, eqVectors, ltMatrices, ltVectors, neighbors);
+  vector<vector<vector<int>>> neweqMatrices{};
+  vector<vector<vector<int>>> newLtMatrices{};
+  vector<vector<int>> neweqVectors{};
+  vector<vector<int>> newltVectors{};
+  //vector<vector<int>> newneighbors{{1,2,3},{1,2,3},{1,2,3}};
+  vector<vector<int>> newneighbors{{1,2},{1,2}};  
+
+
+  rgg* r = rgg::makeRandomRGG(2, 2, neweqMatrices, neweqVectors, newLtMatrices, newltVectors, newneighbors);
   cout << r->getNumPlayers() << endl;
-  for(auto a: r->utilityFunctions) {
-    cout << a.second << endl;
-  } 
+  /*for(auto a: r->utilityFunctions) {
+    for(auto b: a.first) {
+      cout << b;
+    }
+    cout << endl;
+  }*/
+  cout << (*(r->utilityFunctions[0].find(newneighbors[0]))).second << endl;
+  
+  r->setLeftToDefault(r->getNumPlayers());
+  for(auto a: (r->ltMatrices)[0]) { 
+    for(auto b: a){
+      cout << b << " ";
+    }   
+    cout << endl;
+  }
+  for(auto a: (r->ltVectors)[0]) {
+    cout << a << endl;
+  }
+
+  cout << std::get<0>(r->isFeasible(0, vector<int>{0,1,2})); 
+
   return 0;
 } 

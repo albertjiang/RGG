@@ -1,6 +1,6 @@
 #ifndef __RGG_H
 #define __RGG_H
-
+#include<valarray>
 #include <vector>
 #include <iterator>
 #include <tuple>
@@ -9,6 +9,7 @@
 
 using std::vector;
 using std::tuple;
+using std::valarray;
 
 class rgg {
 
@@ -24,7 +25,7 @@ class rgg {
 		vector<intMatrix> ltMatrices;
 		vector<vector<int>> ltVectors;
 		vector<vector<int>> neighbors;
-    trie_map<double> utilityFunctions;
+    vector<trie_map<double>> utilityFunctions;
 
 		rgg(int numPlayers, int numResourceNodes,
 			vector<intMatrix> eqMatrices,
@@ -32,21 +33,23 @@ class rgg {
 			vector<intMatrix> ltMatrices,
 			vector<vector<int>> ltVectors,
 			vector<vector<int>> neighbors,
-			trie_map<double> utilityFunctions);
+			vector<trie_map<double>> utilityFunctions);
 
-    static rgg* makeRandomRGG(int numPlayers, int numResourceNodes,
-			vector<intMatrix> eqMatrices,
-			vector<vector<int>> eqVectors,
-			vector<intMatrix> ltMatrices,
-			vector<vector<int>> ltVectors,
-			vector<vector<int>> neighbors);
+    static rgg* makeRandomRGG(int n, int r,
+			vector<intMatrix> eqMats,
+			vector<vector<int>> eqVecs,
+			vector<intMatrix> ltMats,
+			vector<vector<int>> ltVecs,
+			vector<vector<int>> neigh);
 
 		int getNumPlayers() {return numPlayers;}
 		int getNumResourceNodes() {return numResourceNodes;}
 
-		/*tuple<bool, int> isFeasible(int playerID, pureStrategy p);
+    tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy p);
 		double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
-    */
+    
+    void setLeftToDefault(int m);
+ 
 };
 
 #endif

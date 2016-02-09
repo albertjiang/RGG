@@ -1,59 +1,56 @@
 #include <iostream>
 #include <utility>
-#include <valarray>
 #include <math.h>
 #include "rgg.h"
 
 using std::valarray;
-/*tuple(bool, valarray<bool>, valarray<bool>) isFeasible(int playerID, pureStrategy p) {
-
-  intmatrix a = eqMatrices[playerID];
+std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy p) {
+  rgg::intMatrix a = eqMatrices[playerID];
   vector<int> sums;
   for(int i=0; i<a.size(); i++){
-    vector<int> dotProdVec;
+    int sum = 0;
     for(int j=0; j<a[i].size(); j++) {
-      dotProdVec.push_back(a[i][j] * p[j]);
+      sum += a[i][j] * p[j];
     }
-    sums.push_back(dotProd.sum());
+    sums.push_back(sum);
   }
   valarray<int> leftside(sums.data(), sums.size());
   valarray<int> rightside(eqVectors[playerID].data(), eqVectors[playerID].size());
   valarray<bool> eqRet = (leftside == rightside);
 
-  intmatrix a2 = ltMatrices[playerID];
+  rgg::intMatrix a2 = ltMatrices[playerID];
   vector<int> sums2;
   for(int i=0; i<a2.size(); i++){
-    vector<int> dotProdVec2;
+    int sum2 = 0;
     for(int j=0; j<a2[i].size(); j++) {
-      dotProdVec2.push_back(a[i][j] * p[j]);
+      sum2 += a[i][j] * p[j];
     }
-    sums.push_back(dotProdVec2.sum());
+    sums2.push_back(sum2);
   }
   valarray<int> leftside2(sums2.data(), sums2.size());
   valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
   valarray<bool> ltRet = (leftside2 <= rightside2);
 
   bool feasible = (eqRet.sum()==eqRet.size()) && (ltRet.sum()==ltRet.size());
-  return{feasible, eqRet, ltRet};
+  return std::make_tuple(feasible, eqRet, ltRet);
 }
 // valarray<bool> results = (a[i] * p < eqVector[playerId]);
-
-double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
+double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   double u=0;
   vector<int> totalConfig(numResourceNodes,0);
   for(int a=0; a<p.size(); a++){
     for(int b=0; b<p[a].size(); b++) {
-      totalConfig[b] += pureStrategyProfile[a][b];
+      totalConfig[b] += p[a][b];
     }
   }
   for(int i=0; i<numResourceNodes; i++) {
-    if(p[playerId][i] == 1) {
-      vector<int> localConfig(neighbors[i].size);
+    if(p[playerID][i] == 1) {
+      vector<int> localConfig(neighbors[i].size());
       for(int j=0; j<neighbors[i].size(); j++) {
         localConfig[j] = totalConfig[neighbors[i][j]];
       }
       trie_map<double>::iterator curr = utilityFunctions[i].findExact(localConfig);
-      if(curr == data.end()) {
+      if(curr == utilityFunctions[i].end()) {
         cout << "Error! Local Configuration Not Found";
         exit(1);
       } else {
@@ -63,29 +60,29 @@ double getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   }
   return u;
 }
-*/
+
 rgg::rgg(int newNumPlayers, int newNumResourceNodes,
       vector<intMatrix> newEqMatrices,
       vector<vector<int>> newEqVectors,
       vector<intMatrix> newLtMatrices,
       vector<vector<int>> newLtVectors,
       vector<vector<int>> newNeighbors,
-      trie_map<double> newUtilFuncs) {
+      vector<trie_map<double>> newUtilFuncs) {
   numPlayers = newNumPlayers;
   numResourceNodes = newNumResourceNodes;
   eqMatrices = newEqMatrices;
   eqVectors = newEqVectors;
+  ltMatrices = newLtMatrices;
   ltVectors = newLtVectors;
   neighbors = newNeighbors;
   utilityFunctions = newUtilFuncs;
-  
 }
 
 void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDigits) {
   if(numDigits==0) {
     retVec.push_back(vec);
   }else {
-    for(int i=0; i<=numPlayers; i++) {
+    for(auto i=0; i<=numPlayers; i++) {
       int index = vec.size()-numDigits;
       vec[index] = i;
       Rec(vec, retVec, numPlayers, numDigits-1);
@@ -100,20 +97,39 @@ vector<vector<int>> configurations(int numPlayers, int numDigits) {
    return solution;
 }
 
-rgg* rgg::makeRandomRGG(int numPlayers, int numResourceNodes,
-			vector<intMatrix> eqMatrices,
-			vector<vector<int>> eqVectors,
-			vector<intMatrix> ltMatrices,
-			vector<vector<int>> ltVectors,
-			vector<vector<int>> neighbors) {
-  vector<vector<int>> configs = configurations(numPlayers, neighbors.size());
-  trie_map<double> utilityFunctions;
-  for(int i=0; i<configs.size(); i++) {
-    utilityFunctions.insert(std::make_pair(configs[i], 4.3));
+rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
+			vector<intMatrix> newEqMatrices,
+			vector<vector<int>> newEqVectors,
+			vector<intMatrix> newLtMatrices,
+			vector<vector<int>> newLtVectors,
+			vector<vector<int>> newNeighbors){
+  vector<trie_map<double>> utilityFunctions(newNumResourceNodes);
+  for(auto j=0; j<newNumResourceNodes; j++){
+    vector<vector<int>> configs = configurations(newNumPlayers, newNeighbors[j].size());
+    for(auto i=0; i<configs.size(); i++){
+      utilityFunctions[j].insert(std::make_pair(configs[i], 4.3));
+    }
   }
-  rgg* r = new rgg(numPlayers, numResourceNodes, eqMatrices, eqVectors, ltMatrices, ltVectors, neighbors, utilityFunctions);
+  rgg* r = new rgg(newNumPlayers, newNumResourceNodes, newEqMatrices, newEqVectors, newLtMatrices, newLtVectors, newNeighbors, utilityFunctions);
   return r;
 }
+
+void rgg::setLeftToDefault(int m) {
+    vector<vector<int>> newLTMatrix(2*m, vector<int>(m));
+    for(int i=0; i<m; i++) {
+      newLTMatrix[i][i] = 1;
+      newLTMatrix[i+m][i] = -1;
+    }
+    ltMatrices.push_back(newLTMatrix);
+    vector<int> newLTVector(2*m);
+    for(int i=0; i<m; i++) {
+      newLTVector[i] = 1;
+      newLTVector[i+m] = 0;
+    }
+    ltVectors.push_back(newLTVector);   
+}
+
+
 
 //int main() {
  // return 0;
@@ -123,13 +139,9 @@ rgg* rgg::makeRandomRGG(int numPlayers, int numResourceNodes,
 //don't need a complex generator, just add to gambits' generator.
 //generating random utilities. don't need to generate different graphs.
 //for now just have two graphs complete graph and self loop graph
-
-
 //marginal vectors - storing a value between 0 and 1 for chance that a particular factor is chosen.
 //small support vectors
-
 //heuristics for nash equilibrium
-
 //several candidates for solving
 //fictitious play algorithm - using marginal vector form, 
 //iterated best response, play best responses against each other and hope
