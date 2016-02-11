@@ -34,6 +34,8 @@ class rgg {
 			vector<vector<int>> ltVectors,
 			vector<vector<int>> neighbors,
 			vector<trie_map<double>> utilityFunctions);
+      
+
 
     static rgg* makeRandomRGG(int n, int r,
 			vector<intMatrix> eqMats,
@@ -46,10 +48,11 @@ class rgg {
 		int getNumResourceNodes() {return numResourceNodes;}
 
     tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy p);
-		double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
+    double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
     
-    void addDefaultLTMatrix(int m);
- 
+    void addDefaultLT();
+
+    static vector<vector<int>> createCompleteGraph(int numResourceNodes);
 };
 
 #endif

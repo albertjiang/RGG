@@ -126,22 +126,30 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
   return r;
 }
 
-void rgg::addDefaultLTMatrix(int m) {
-    vector<vector<int>> newLTMatrix(2*m, vector<int>(m));
-    for(int i=0; i<m; i++) {
+void rgg::addDefaultLT() {
+    vector<vector<int>> newLTMatrix(2*numPlayers, vector<int>(numPlayers));
+    for(int i=0; i<numPlayers; i++) {
       newLTMatrix[i][i] = 1;
-      newLTMatrix[i+m][i] = -1;
+      newLTMatrix[i+numPlayers][i] = -1;
     }
     ltMatrices.push_back(newLTMatrix);
-    vector<int> newLTVector(2*m);
-    for(int i=0; i<m; i++) {
+    vector<int> newLTVector(2*numPlayers);
+    for(int i=0; i<numPlayers; i++) {
       newLTVector[i] = 1;
-      newLTVector[i+m] = 0;
+      newLTVector[i+numPlayers] = 0;
     }
     ltVectors.push_back(newLTVector);   
 }
 
-
+vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
+  vector<vector<int>> neighbors(numResourceNodes, vector<int>(numResourceNodes));
+  for(int i=0; i<numResourceNodes; ++i) {
+    for(int j = 1; j<=numResourceNodes; ++j) {
+      neighbors[i][j-1] = j;
+    }
+  }
+  return neighbors;
+} 
 
 //int main() {
  // return 0;
