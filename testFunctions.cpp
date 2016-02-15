@@ -14,9 +14,9 @@ int main() {
   vector<int> t {1,2,3};
   m.insert(std::make_pair(t, 2.4));
   cout << (*m.find(t)).second;*/
-  vector<vector<vector<int>>> neweqMatrices{};
+  vector<vector<vector<int>>> neweqMatrices(2);
   vector<vector<vector<int>>> newLtMatrices{};
-  vector<vector<int>> neweqVectors{};
+  vector<vector<int>> neweqVectors(2);
   vector<vector<int>> newltVectors{};
   vector<vector<int>> neighbors = rgg::createCompleteGraph(3); 
   cout << "Testing Create Complete Graph With 3 Resource Nodes" << endl; 
@@ -58,7 +58,20 @@ int main() {
   }
   cout << endl;
   cout << "Testing isFeasible Function:" << endl;
-  r->isFeasible(0, vector<int>{0,1,2});
-  //cout << std::get<0>(r->isFeasible(0, vector<int>{0,1,2})); 
+  std::tuple<bool, valarray<bool>, valarray<bool>> feas = r->isFeasible(0, vector<int>{1,1,1});
+  cout << std::get<0>(feas) << endl;
+  for(auto a: std::get<1>(feas)) {
+    cout << a << " ";
+  }
+  cout << endl;
+  for(auto a: std::get<2>(feas)) {
+    cout << a << " ";
+  }
+  cout << endl << endl;
+  cout << "Testing getPureStrategyUtility:" << endl;
+  vector<vector<int>> pureStrategyProfile;
+  pureStrategyProfile.push_back(vector<int>{1,0,1});
+  pureStrategyProfile.push_back(vector<int>{1,0,1});
+  cout << r->getPureStrategyUtility(0, pureStrategyProfile) << endl; 
   return 0;
 } 

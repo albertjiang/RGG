@@ -7,11 +7,7 @@ using std::valarray;
 using std::cout;
 
 std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy p) {
-  if(eqMatrices.size() == 0){
-    cout << "Error: No Equality Matrices" << endl;
-    return std::make_tuple(false, valarray<bool>{}, valarray<bool>{});
-  }
-  else if(ltMatrices.size() == 0) {
+  if(ltMatrices.size() == 0) {
     cout << "Error: No Less Than Matrices" << endl;
     return std::make_tuple(false, valarray<bool>{}, valarray<bool>{});
   }
@@ -34,7 +30,7 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
     for(int i=0; i<a2.size(); i++){
       int sum2 = 0;
       for(int j=0; j<a2[i].size(); j++) {
-        sum2 += a[i][j] * p[j];
+        sum2 += a2[i][j] * p[j];
       }
       sums2.push_back(sum2);
     }
@@ -42,7 +38,17 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
     valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
     valarray<bool> ltRet = (leftside2 <= rightside2);
 
-    bool feasible = (eqRet.sum()==eqRet.size()) && (ltRet.sum()==ltRet.size());
+    int ltretsum = 0;
+    for(auto a: ltRet) {
+      if(a == true)
+        ++ltretsum;
+    }
+    int eqretsum = 0;
+    for(auto a: eqRet) {
+      if(a == true)
+        ++eqretsum;
+    }
+    bool feasible = (eqretsum==eqRet.size()) && (ltretsum==ltRet.size());
     return std::make_tuple(feasible, eqRet, ltRet);
   }
 }
@@ -144,8 +150,8 @@ void rgg::addDefaultLT() {
 vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
   vector<vector<int>> neighbors(numResourceNodes, vector<int>(numResourceNodes));
   for(int i=0; i<numResourceNodes; ++i) {
-    for(int j = 1; j<=numResourceNodes; ++j) {
-      neighbors[i][j-1] = j;
+    for(int j = 0; j<numResourceNodes; ++j) {
+      neighbors[i][j] = j;
     }
   }
   return neighbors;
