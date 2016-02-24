@@ -4,6 +4,7 @@
 #include "proj_func.h"
 #include "trie_map.h"
 #include "rgg.h"
+#include "gametable.h"
 using std::vector;
 using std::cout;
 using std::endl;

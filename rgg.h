@@ -34,8 +34,6 @@ class rgg {
 			vector<vector<int>> ltVectors,
 			vector<vector<int>> neighbors,
 			vector<trie_map<double>> utilityFunctions);
-      
-
 
     static rgg* makeRandomRGG(int n, int r,
 			vector<intMatrix> eqMats,

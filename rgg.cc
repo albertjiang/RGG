@@ -157,18 +157,20 @@ vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
   return neighbors;
 } 
 
-//int main() {
- // return 0;
-//}
+//code for creating normal form RGG
+rgg::createNormalFormRGG() {
+  vector<vector<vector<int>>> setOfPureStrategyProfiles;
+  for(int i=0; i<numPlayers; ++i) {
+    vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
+    vector<vector<int>  playerPureStrategyProfile;
+    for(auto p:possiblePureStrategies){
+      if(isFeasible(i, p)) {
+        playerPureStrategyProfile.push_back(p);
+      } 
+    }
+    setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
+  }
+}
 
-//you can have different kinds of graphs. self loop graph would give us congestion games, the other thing we can have is a complete graph.
-//don't need a complex generator, just add to gambits' generator.
-//generating random utilities. don't need to generate different graphs.
-//for now just have two graphs complete graph and self loop graph
-//marginal vectors - storing a value between 0 and 1 for chance that a particular factor is chosen.
-//small support vectors
-//heuristics for nash equilibrium
-//several candidates for solving
-//fictitious play algorithm - using marginal vector form, 
-//iterated best response, play best responses against each other and hope
-//it converges. requires integer linear programs
+
+
