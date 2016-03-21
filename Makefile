@@ -1,4 +1,4 @@
 FLAGS= -std=c++11 -I.
 
-GameTableTest: libagg/*.cc libgambit/*.cc testingGameTable.cpp;\
-  g++ $(FLAGS) -o GameTableTest libagg/*.cc libgambit/*.cc testingGameTable.cpp;
+main: libagg/*.o libgambit/*.o rgg.cc testFunctions.cpp;\
+  g++ $(FLAGS) -g -o main libagg/*.o libgambit/*.o rgg.cc testFunctions.cpp;

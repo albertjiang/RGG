@@ -4,7 +4,7 @@
 #include "proj_func.h"
 #include "trie_map.h"
 #include "rgg.h"
-#include "gametable.h"
+
 using std::vector;
 using std::cout;
 using std::endl;
@@ -47,7 +47,18 @@ int main() {
   cout << "Testing addDefaultLT() Function:" << endl;
   cout << "Making Sure LT Matrices are correct:" << endl;
   r->addDefaultLT();
-  for(auto a: (r->ltMatrices)[0]) { 
+  for(int i=0;i<2; i++) {
+    cout << "Checking Player " << i << endl;
+    for(auto a:(r->ltMatrices)[i]){ 
+      for(auto b: a){
+        cout << b << " ";
+      }
+      cout << endl;
+    }   
+    cout << endl;
+  }
+
+  /*for(auto a: (r->ltMatrices)[0]) { 
     for(auto b: a){
       cout << b << " ";
     }   
@@ -56,10 +67,11 @@ int main() {
   cout << "Making sure LT Vectors are correct:" << endl;
   for(auto a: (r->ltVectors)[0]) {
     cout << a << endl;
-  }
+  }*/
   cout << endl;
   cout << "Testing isFeasible Function:" << endl;
-  std::tuple<bool, valarray<bool>, valarray<bool>> feas = r->isFeasible(0, vector<int>{1,1,1});
+  vector<int> vec{1,1,1};
+  std::tuple<bool, valarray<bool>, valarray<bool>> feas = r->isFeasible(0, vec);
   cout << std::get<0>(feas) << endl;
   for(auto a: std::get<1>(feas)) {
     cout << a << " ";
@@ -74,5 +86,8 @@ int main() {
   pureStrategyProfile.push_back(vector<int>{1,0,1});
   pureStrategyProfile.push_back(vector<int>{1,0,1});
   cout << r->getPureStrategyUtility(0, pureStrategyProfile) << endl; 
+  cout << "Creating Normal Form Rep " << endl; 
+  NashStrategySolver<int> g;
+  Gambit::Solve(r->toNormalForm());
   return 0;
 } 

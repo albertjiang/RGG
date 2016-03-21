@@ -6,6 +6,8 @@
 #include <tuple>
 #include "proj_func.h"
 #include "trie_map.h"
+#include "./libgambit/libgambit.h"
+#include "./libgambit/gametable.h"
 
 using std::vector;
 using std::tuple;
@@ -45,12 +47,14 @@ class rgg {
 		int getNumPlayers() {return numPlayers;}
 		int getNumResourceNodes() {return numResourceNodes;}
 
-    tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy p);
+    tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy& p);
     double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
     
     void addDefaultLT();
 
     static vector<vector<int>> createCompleteGraph(int numResourceNodes);
+
+    Gambit::GameTableRep* toNormalForm();
 };
 
 #endif

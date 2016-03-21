@@ -2,17 +2,18 @@
 #include <utility>
 #include <math.h>
 #include "rgg.h"
+#include<string>
 
 using std::valarray;
 using std::cout;
 
-std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy p) {
-  if(ltMatrices.size() == 0) {
+std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy &p) {
+  if(ltMatrices[playerID].size() == 0) {
     cout << "Error: No Less Than Matrices" << endl;
     return std::make_tuple(false, valarray<bool>{}, valarray<bool>{});
   }
   else {
-    rgg::intMatrix a = eqMatrices[playerID];
+    rgg::intMatrix &a = eqMatrices.at(playerID);
     vector<int> sums;
     for(int i=0; i<a.size(); i++){
       int sum = 0;
@@ -25,7 +26,7 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
     valarray<int> rightside(eqVectors[playerID].data(), eqVectors[playerID].size());
     valarray<bool> eqRet = (leftside == rightside);
 
-    rgg::intMatrix a2 = ltMatrices[playerID];
+    rgg::intMatrix &a2 = ltMatrices.at(playerID);
     vector<int> sums2;
     for(int i=0; i<a2.size(); i++){
       int sum2 = 0;
@@ -133,18 +134,20 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
 }
 
 void rgg::addDefaultLT() {
-    vector<vector<int>> newLTMatrix(2*numPlayers, vector<int>(numPlayers));
-    for(int i=0; i<numPlayers; i++) {
-      newLTMatrix[i][i] = 1;
-      newLTMatrix[i+numPlayers][i] = -1;
-    }
-    ltMatrices.push_back(newLTMatrix);
-    vector<int> newLTVector(2*numPlayers);
-    for(int i=0; i<numPlayers; i++) {
-      newLTVector[i] = 1;
-      newLTVector[i+numPlayers] = 0;
-    }
-    ltVectors.push_back(newLTVector);   
+  for(int p=0; p<numPlayers; p++) {
+      vector<vector<int>> newLTMatrix(2*numResourceNodes, vector<int>(numResourceNodes));
+      for(int i=0; i<numResourceNodes; i++) {
+        newLTMatrix[i][i] = 1;
+        newLTMatrix[i+numResourceNodes][i] = -1;
+      }
+      ltMatrices.push_back(newLTMatrix);
+      vector<int> newLTVector(2*numResourceNodes);
+      for(int i=0; i<numResourceNodes; i++) {
+        newLTVector[i] = 1;
+        newLTVector[i+numResourceNodes] = 0;
+      }
+      ltVectors.push_back(newLTVector);
+  }   
 }
 
 vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
@@ -158,19 +161,35 @@ vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
 } 
 
 //code for creating normal form RGG
-rgg::createNormalFormRGG() {
+Gambit::GameTableRep* rgg::toNormalForm() {
   vector<vector<vector<int>>> setOfPureStrategyProfiles;
   for(int i=0; i<numPlayers; ++i) {
     vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
-    vector<vector<int>  playerPureStrategyProfile;
+    vector<vector<int>>  playerPureStrategyProfile;
     for(auto p:possiblePureStrategies){
-      if(isFeasible(i, p)) {
+      if(std::get<0>(isFeasible(i, p))) {
         playerPureStrategyProfile.push_back(p);
       } 
     }
     setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
   }
+  Gambit::Array<int> dimensions(numPlayers);
+  for(int n=1; n<=numPlayers;n++) {
+    dimensions[n] = setOfPureStrategyProfiles[n-1].size();
+  }
+  Gambit::GameTableRep *g = new Gambit::GameTableRep(dimensions,false);
+  for(Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(g)}; !iter.AtEnd(); iter++) {
+    Gambit::PureStrategyProfile p = *iter;
+    Gambit::GameOutcome o = p->GetOutcome();
+    pureStrategyProfile currP;
+    for(int pl = 0; pl<numPlayers; pl++) {
+      currP.push_back(setOfPureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
+    }
+    for(int p = 0; p <numPlayers; p++) {
+      //cout << p->GetStrategy(pl+1)->GetNumber() << endl;
+      double u = getPureStrategyUtility(p,currP);
+      o->SetPayoff(p+1,std::to_string(u));
+    }
+  } 
+  return g;
 }
-
-
-
