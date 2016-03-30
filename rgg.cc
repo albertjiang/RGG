@@ -3,6 +3,9 @@
 #include <math.h>
 #include "rgg.h"
 #include<string>
+#include<cstdlib>
+#include<ctime>
+#include<glpk.h>
 
 using std::valarray;
 using std::cout;
@@ -53,7 +56,7 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
     return std::make_tuple(feasible, eqRet, ltRet);
   }
 }
-// valarray<bool> results = (a[i] * p < eqVector[playerId]);
+
 double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   double u=0;
   vector<int> totalConfig(numResourceNodes,0);
@@ -78,6 +81,42 @@ double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
     }
   }
   return u;
+}
+
+vector<double> rgg::getUtilityGradient(int playerID, pureStrategyProfile &p) {
+  /*vector<pureStrategy> pureStrats(p);
+  for(int a = 0; a < pureStrats[playerID].size(); a++) {
+    pureStrats[playerID][a] = 0;
+  }*/
+  vector<double> utilities(numResourceNodes,0);
+  vector<int> totalConfig(numResourceNodes,0);
+  for(int a=0; a<p.size(); a++){
+    if(a!=playerID) {
+      for(int b=0; b<p[a].size(); b++) {
+       totalConfig[b] += p[a][b];
+      }
+    }
+  }
+  for(int i=0; i<numResourceNodes; i++) {
+    totalConfig[i] += 1;
+    vector<int> localConfig(neighbors[i].size());
+    for(int j=0; j<neighbors[i].size(); j++) {
+      localConfig[j] = totalConfig[neighbors[i][j]];
+    }
+    trie_map<double>::iterator curr = utilityFunctions[i].findExact(localConfig);
+    if(curr == utilityFunctions[i].end()) {
+      cout << "Error! Local Configuration  ";
+      for(auto a: localConfig)
+        cout << a << " ";
+      cout << "Was Not Found";
+      cout << endl << endl;
+      exit(1);
+    } else {
+        utilities[i] = curr->second;
+    }
+    totalConfig[i] -= 1;
+  }
+  return utilities;
 }
 
 rgg::rgg(int newNumPlayers, int newNumResourceNodes,
@@ -122,11 +161,13 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
 			vector<intMatrix> newLtMatrices,
 			vector<vector<int>> newLtVectors,
 			vector<vector<int>> newNeighbors){
+  srand(time(NULL));
   vector<trie_map<double>> utilityFunctions(newNumResourceNodes);
   for(auto j=0; j<newNumResourceNodes; j++){
     vector<vector<int>> configs = configurations(newNumPlayers, newNeighbors[j].size());
     for(auto i=0; i<configs.size(); i++){
-      utilityFunctions[j].insert(std::make_pair(configs[i], 4.3));
+      double randNum =  (100) * ( (double)rand() / (double)RAND_MAX );
+      utilityFunctions[j].insert(std::make_pair(configs[i], randNum));
     }
   }
   rgg* r = new rgg(newNumPlayers, newNumResourceNodes, newEqMatrices, newEqVectors, newLtMatrices, newLtVectors, newNeighbors, utilityFunctions);
@@ -160,7 +201,14 @@ vector<vector<int>> rgg::createCompleteGraph(int numResourceNodes) {
   return neighbors;
 } 
 
-//code for creating normal form RGG
+vector<vector<int>> rgg::createSelfLoopGraph(int numResourceNodes) {
+  vector<vector<int>> neighbors(numResourceNodes, vector<int>(1));
+  for(int i=0; i<numResourceNodes; ++i) {
+    neighbors[i][0] = i;
+  }
+  return neighbors;
+}
+
 Gambit::GameTableRep* rgg::toNormalForm() {
   vector<vector<vector<int>>> setOfPureStrategyProfiles;
   for(int i=0; i<numPlayers; ++i) {
@@ -186,10 +234,57 @@ Gambit::GameTableRep* rgg::toNormalForm() {
       currP.push_back(setOfPureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
     }
     for(int p = 0; p <numPlayers; p++) {
-      //cout << p->GetStrategy(pl+1)->GetNumber() << endl;
       double u = getPureStrategyUtility(p,currP);
       o->SetPayoff(p+1,std::to_string(u));
     }
   } 
   return g;
+}
+
+void rgg::solveMultiLinear() {
+  vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
+  vector<double> uGradient = this->getUtilityGradient(0, pureStrategyProfile);
+  int ltMatrixRowCount = ltMatrices[0].size();
+  int ltMatrixColCount = ltMatrices[0][0].size(); 
+  int ltMatrixSize = ltMatrixRowCount * ltMatrixColCount;
+  cout << endl << endl << ltMatrixSize << endl << endl;
+  glp_prob *lp;
+  int ia[1+ltMatrixSize], ja[1+ltMatrixSize];
+  double ar[1+ltMatrixSize], z, x1, x2;
+  lp = glp_create_prob();
+  glp_set_obj_dir(lp, GLP_MAX);
+  glp_add_rows(lp, ltMatrixRowCount);
+  for(int i = 1; i <= ltMatrixRowCount; ++i) {
+    glp_set_row_bnds(lp, i, GLP_UP, 0, double(ltVectors[0][i]));
+  }
+  //I don't think I need to worry about col bounds right now
+  glp_add_cols(lp, ltMatrixColCount);
+  for(int i = 1; i <= ltMatrixColCount; ++i) {
+    glp_set_obj_coef(lp, i, uGradient[i]);
+  }
+  int currRow = 1;
+  int currCol = 1;
+  for(int i = 1; i <= ltMatrixSize; ++i) {
+    ia[i] = currRow , ja[i] = currCol , ar[i] = ltMatrices[0][currRow][currCol];
+    if( (currCol % ltMatrixColCount) == 0) {
+      currRow += 1;
+      currCol = 1;
+    }
+    else {
+      currCol += 1;
+    }
+  }
+  glp_load_matrix(lp, ltMatrixSize, ia, ja, ar); 
+  glp_simplex(lp, NULL);
+  z = glp_get_obj_val(lp);
+  x1 = glp_get_col_prim(lp, 1);
+  x2 = glp_get_col_prim(lp, 2);
+  printf("z = %g; x1 = %g; x2 = %g\n", z, x1, x2);
+  glp_delete_prob(lp);
+  glp_free_env();
+  /*vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
+  for(int p = 0; p < numPlayers; ++p) {
+    vector<double> uGradient = this->getUtilityGradient(p, pureStrategyProfile);
+    int usize = uGradient.size();
+  }*/
 }

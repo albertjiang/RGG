@@ -49,12 +49,17 @@ class rgg {
 
     tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy& p);
     double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
+    vector<double> getUtilityGradient(int playerID, pureStrategyProfile &p);
     
     void addDefaultLT();
 
     static vector<vector<int>> createCompleteGraph(int numResourceNodes);
+    static vector<vector<int>> createSelfLoopGraph(int numResourceNodes);
 
     Gambit::GameTableRep* toNormalForm();
+
+    void solveMultiLinear();  
+
 };
 
 #endif
