@@ -84,10 +84,6 @@ double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 }
 
 vector<double> rgg::getUtilityGradient(int playerID, pureStrategyProfile &p) {
-  /*vector<pureStrategy> pureStrats(p);
-  for(int a = 0; a < pureStrats[playerID].size(); a++) {
-    pureStrats[playerID][a] = 0;
-  }*/
   vector<double> utilities(numResourceNodes,0);
   vector<int> totalConfig(numResourceNodes,0);
   for(int a=0; a<p.size(); a++){
@@ -241,48 +237,110 @@ Gambit::GameTableRep* rgg::toNormalForm() {
   return g;
 }
 
-void rgg::solveMultiLinear() {
+void rgg::multiLinearSolve() {
+  int playerID = 0;
   vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
-  vector<double> uGradient = this->getUtilityGradient(0, pureStrategyProfile);
-  int ltMatrixRowCount = ltMatrices[0].size();
-  int ltMatrixColCount = ltMatrices[0][0].size(); 
-  int ltMatrixSize = ltMatrixRowCount * ltMatrixColCount;
-  cout << endl << endl << ltMatrixSize << endl << endl;
+  vector<double> uGradient = this->getUtilityGradient(playerID, pureStrategyProfile);
+  int ltMatrixRowCount, ltMatrixColCount, ltMatrixSize;
+  int eqMatrixRowCount, eqMatrixColCount, eqMatrixSize;
+  int problemMatrixCount;
+  if(ltMatrices[playerID].size() == 0) {
+    ltMatrixRowCount = 0;
+    ltMatrixColCount = 0;
+    ltMatrixSize = 0;
+  } else {
+    ltMatrixRowCount = ltMatrices[playerID].size();
+    ltMatrixColCount = ltMatrices[playerID][0].size(); 
+    ltMatrixSize = ltMatrixRowCount * ltMatrixColCount;
+  } 
+  if(eqMatrices[playerID].size() == 0) {
+    eqMatrixRowCount = 0;
+    eqMatrixColCount = 0;
+    eqMatrixSize = 0;
+  } else { 
+    eqMatrixRowCount = eqMatrices[playerID].size();
+    eqMatrixColCount = eqMatrices[playerID][0].size(); 
+    eqMatrixSize = eqMatrixRowCount * eqMatrixColCount;
+  }
+  int totalRowCount = ltMatrixRowCount + eqMatrixRowCount;
+  problemMatrixCount = ltMatrixColCount * totalRowCount;
+  cout << "Problem's Matrix Has " << problemMatrixCount << " values in it " <<  endl << endl;
   glp_prob *lp;
-  int ia[1+ltMatrixSize], ja[1+ltMatrixSize];
-  double ar[1+ltMatrixSize], z, x1, x2;
+  int ia[1+problemMatrixCount], ja[1+problemMatrixCount];
+  double ar[1+problemMatrixCount];
   lp = glp_create_prob();
   glp_set_obj_dir(lp, GLP_MAX);
-  glp_add_rows(lp, ltMatrixRowCount);
-  for(int i = 1; i <= ltMatrixRowCount; ++i) {
-    glp_set_row_bnds(lp, i, GLP_UP, 0, double(ltVectors[0][i]));
+  glp_add_rows(lp, totalRowCount);
+  if(ltMatrixRowCount > 0) {
+    for(int i = 1; i <= ltMatrixRowCount; ++i) {
+      glp_set_row_bnds(lp, i, GLP_UP, 0, double(ltVectors[playerID][i-1]));
+    }
+  }
+  if(eqMatrixRowCount > 0) {
+    for(int i = 1; i <= eqMatrixRowCount; ++i) {
+      glp_set_row_bnds(lp, ltMatrixRowCount + i, GLP_UP, 0, double(eqVectors[playerID][i-1]));
+    }
   }
   //I don't think I need to worry about col bounds right now
   glp_add_cols(lp, ltMatrixColCount);
   for(int i = 1; i <= ltMatrixColCount; ++i) {
-    glp_set_obj_coef(lp, i, uGradient[i]);
+    glp_set_obj_coef(lp, i, uGradient[i-1]);
   }
   int currRow = 1;
   int currCol = 1;
-  for(int i = 1; i <= ltMatrixSize; ++i) {
-    ia[i] = currRow , ja[i] = currCol , ar[i] = ltMatrices[0][currRow][currCol];
-    if( (currCol % ltMatrixColCount) == 0) {
-      currRow += 1;
-      currCol = 1;
-    }
-    else {
-      currCol += 1;
+  if(ltMatrixSize > 0) {
+    for(int i = 1; i <= ltMatrixSize; ++i) {
+      ia[i] = currRow , ja[i] = currCol , ar[i] = ltMatrices[playerID][currRow-1][currCol-1];
+      if(currCol == ltMatrixColCount) {
+        currRow += 1;
+        currCol = 1;
+      }
+      else {
+        currCol += 1;
+      }
     }
   }
-  glp_load_matrix(lp, ltMatrixSize, ia, ja, ar); 
+  currRow = 1;
+  currCol = 1;
+  if(eqMatrixSize > 0) {
+    for(int i = ltMatrixSize+1; i <= problemMatrixCount; ++i) {
+      ia[i] = (currRow + ltMatrixRowCount) , ja[i] = currCol , ar[i] = eqMatrices[playerID][currRow-1][currCol-1];
+      if(currCol == ltMatrixColCount) {
+        currRow += 1;
+        currCol = 1;
+      }
+      else {
+        currCol += 1;
+      }
+    }
+  }
+  glp_load_matrix(lp, problemMatrixCount, ia, ja, ar); 
   glp_simplex(lp, NULL);
-  z = glp_get_obj_val(lp);
-  x1 = glp_get_col_prim(lp, 1);
-  x2 = glp_get_col_prim(lp, 2);
-  printf("z = %g; x1 = %g; x2 = %g\n", z, x1, x2);
+  int z = glp_get_obj_val(lp);
+  cout << "z = " << z << endl;
+  for(int i = 1; i <=ltMatrixColCount; i++) {
+    cout << "x" << i << " = " << glp_get_col_prim(lp,i) << " ";
+  }
+  cout << endl;
+  cout << "i array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ia[i] << " ";
+  cout << endl;
+  cout << "j array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ja[i] << " ";
+  cout << endl;
+  cout << "a array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ar[i] << " ";
+  cout << endl;
+
+  glp_print_sol(lp, "hello.txt");
   glp_delete_prob(lp);
   glp_free_env();
-  /*vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
+  /*
+  This is a reminder that I have to run this function for other players
+  vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
   for(int p = 0; p < numPlayers; ++p) {
     vector<double> uGradient = this->getUtilityGradient(p, pureStrategyProfile);
     int usize = uGradient.size();

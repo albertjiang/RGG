@@ -58,7 +58,7 @@ class rgg {
 
     Gambit::GameTableRep* toNormalForm();
 
-    void solveMultiLinear();  
+    void multiLinearSolve();  
 
 };
 

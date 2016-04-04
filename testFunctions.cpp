@@ -75,6 +75,11 @@ int main() {
     cout << endl << endl;
   }
   cout << endl;
+
+  cout << "Checking size of EQ Matrix" << endl;
+  cout << r->eqMatrices.size();
+  cout << endl << endl;
+
   cout << "Testing isFeasible Function:" << endl;
   vector<int> vec{1,1,1};
   std::tuple<bool, valarray<bool>, valarray<bool>> feas = r->isFeasible(0, vec);
@@ -97,11 +102,12 @@ int main() {
     cout << a << " ";
   }
   cout << endl << endl;
-  cout << "Testing solveMultiLinear()" << endl; 
-  r->solveMultiLinear();
+  cout << "Testing multiLinearSolve()" << endl; 
+  r->multiLinearSolve();
   cout << endl;
   cout << "Creating Normal Form Rep " << endl; 
-  r->toNormalForm();
+  Gambit::GameTableRep* normalFormR = r->toNormalForm();
+  //normalFormR->GetAction(1);
   //Need to test normal form representation here
   return 0;
 } 
