@@ -28,6 +28,7 @@ class rgg {
 		vector<vector<int>> ltVectors;
 		vector<vector<int>> neighbors;
     vector<trie_map<double>> utilityFunctions;
+    vector<pureStrategyProfile> feasiblePureStrategyProfiles;
 
 		rgg(int numPlayers, int numResourceNodes,
 			vector<intMatrix> eqMatrices,
@@ -58,7 +59,11 @@ class rgg {
 
     Gambit::GameTableRep* toNormalForm();
 
-    void multiLinearSolve();  
+    void multiLinearSolve(); 
+    Gambit::List<Gambit::GameStrategy> normalFormBestResponseList(int playerNumber, Gambit::GameTableRep *nfg);
+    pureStrategy convertNFGStrategyToRGGStrategy(int playerNumber, int strategyNumber);
+    int nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse);
+    void createFeasiblePureStrategyProfiles();
 
 };
 

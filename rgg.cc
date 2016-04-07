@@ -205,8 +205,23 @@ vector<vector<int>> rgg::createSelfLoopGraph(int numResourceNodes) {
   return neighbors;
 }
 
+void rgg::createFeasiblePureStrategyProfiles() {
+  if(feasiblePureStrategyProfiles.size() == 0) {
+    for(int i=0; i<numPlayers; ++i) {
+      vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
+      vector<vector<int>>  playerPureStrategyProfile;
+      for(auto p:possiblePureStrategies){
+        if(std::get<0>(isFeasible(i, p))) {
+         playerPureStrategyProfile.push_back(p);
+        }
+      }
+      feasiblePureStrategyProfiles.push_back(playerPureStrategyProfile);
+    }
+  }
+}
+
 Gambit::GameTableRep* rgg::toNormalForm() {
-  vector<vector<vector<int>>> setOfPureStrategyProfiles;
+  /*vector<vector<vector<int>>> setOfPureStrategyProfiles;
   for(int i=0; i<numPlayers; ++i) {
     vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
     vector<vector<int>>  playerPureStrategyProfile;
@@ -216,10 +231,12 @@ Gambit::GameTableRep* rgg::toNormalForm() {
       } 
     }
     setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
-  }
+  }*/
+  createFeasiblePureStrategyProfiles();
   Gambit::Array<int> dimensions(numPlayers);
   for(int n=1; n<=numPlayers;n++) {
-    dimensions[n] = setOfPureStrategyProfiles[n-1].size();
+    //dimensions[n] = setOfPureStrategyProfiles[n-1].size();
+    dimensions[n] = feasiblePureStrategyProfiles[n-1].size();
   }
   Gambit::GameTableRep *g = new Gambit::GameTableRep(dimensions,false);
   for(Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(g)}; !iter.AtEnd(); iter++) {
@@ -229,18 +246,58 @@ Gambit::GameTableRep* rgg::toNormalForm() {
     for(int pl = 0; pl<numPlayers; pl++) {
       //cout << endl << p->GetStrategy(pl+1)->GetId() << endl;
       //cout << Gambit::lexical_cast<std::string>((p)->GetStrategy(pl+1)->GetLabel()) << endl;
-      currP.push_back(setOfPureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
+      //currP.push_back(setOfPureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
+      currP.push_back(feasiblePureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
     }
-    for(int p = 0; p <numPlayers; p++) {
-      double u = getPureStrategyUtility(p,currP);
-      o->SetPayoff(p+1,std::to_string(u));
+    for(int pl = 0; pl <numPlayers; pl++) {
+      double u = getPureStrategyUtility(pl,currP);
+      o->SetPayoff(pl+1,std::to_string(u));
     }
   }
-  std::ostringstream f;
-  Gambit::StrategySupportProfile(g).WriteNfgFile(f);
-  cout << f.str();
+  //std::ostringstream f;
+  //Gambit::StrategySupportProfile(g).WriteNfgFile(f);
+  //cout << f.str();
   return g;
 }
+
+Gambit::List<Gambit::GameStrategy> rgg::normalFormBestResponseList(int playerNumber, Gambit::GameTableRep *nfg) {
+  Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(nfg)};
+  Gambit::PureStrategyProfile p = *iter;
+  Gambit::List<Gambit::GameStrategy> bestResponses = p->GetBestResponse(nfg->GetPlayer(playerNumber+1));
+  //cout << endl; 
+  //auto bestResponse1 = bestResponses[1];
+  //auto b = *bestResponse1;
+  //cout << b.GetNumber();
+  //cout << endl;
+  //return b.GetNumber();
+  return bestResponses;
+}
+
+rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, int strategyNumber) {
+  createFeasiblePureStrategyProfiles();
+  /*vector<vector<vector<int>>> setOfPureStrategyProfiles;
+  for(int i=0; i<numPlayers; ++i) {
+    vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
+    vector<vector<int>>  playerPureStrategyProfile;
+    for(auto p:possiblePureStrategies){
+      if(std::get<0>(isFeasible(i, p))) {
+        playerPureStrategyProfile.push_back(p);
+      }
+    }
+    setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
+  }*/
+  return feasiblePureStrategyProfiles[playerNumber][strategyNumber-1];
+}
+
+int rgg::nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse) {
+  for(int i = 1; i<=bestResponseList.size(); i++) {
+    pureStrategy nfgBestResponse = convertNFGStrategyToRGGStrategy(playerNumber, (*(bestResponseList[i])).GetNumber());
+    if(bestResponse == nfgBestResponse)
+      return i;
+  }
+  return -1;
+}
+
 
 void rgg::multiLinearSolve() {
   int playerID;
@@ -381,5 +438,4 @@ void rgg::multiLinearSolve() {
   }
   cout << endl << endl;
 }
-
 

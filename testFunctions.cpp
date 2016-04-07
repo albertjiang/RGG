@@ -106,7 +106,20 @@ int main() {
   r->multiLinearSolve();
   cout << endl;
   cout << "Creating Normal Form Rep " << endl; 
-  Gambit::GameTableRep* normalFormR = r->toNormalForm();
+  Gambit::GameTableRep* nfg = r->toNormalForm();
+  cout << "Printing Normal Form Rep " << endl;
+  std::ostringstream f;
+  Gambit::StrategySupportProfile(nfg).WriteNfgFile(f);
+  cout << f.str();
+  Gambit::List<Gambit::GameStrategy> bestResponseList = r->normalFormBestResponseList(0, nfg);
+  int index = r->nfBestResponseListContainsRGGBestResponse(0, bestResponseList, vector<int>{1,1,1});
+  cout << endl << endl << "Index: " << index << endl << endl;
+  //rgg::pureStrategy ps = r->convertNFGStrategyToRGGStrategy(0, r->normalFormFirstBestResponse(0,nfg));
+  //cout << "Best Normal Form Strategy:" << endl;
+  //for(auto x: ps)
+  //  cout << x << " ";
+  //cout << endl;
+
   //normalFormR->GetAction(1);
   //Need to test normal form representation here
   return 0;
