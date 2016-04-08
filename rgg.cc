@@ -254,27 +254,25 @@ Gambit::GameTableRep* rgg::toNormalForm() {
       o->SetPayoff(pl+1,std::to_string(u));
     }
   }
-  //std::ostringstream f;
-  //Gambit::StrategySupportProfile(g).WriteNfgFile(f);
-  //cout << f.str();
   return g;
 }
 
-Gambit::List<Gambit::GameStrategy> rgg::normalFormBestResponseList(int playerNumber, Gambit::GameTableRep *nfg) {
-  Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(nfg)};
-  Gambit::PureStrategyProfile p = *iter;
+void rgg::printNormalFormGame(Gambit::GameTableRep *nfg) {
+  std::ostringstream f;
+  Gambit::StrategySupportProfile(nfg).WriteNfgFile(f);
+  cout << f.str();  
+}
+
+Gambit::List<Gambit::GameStrategy> rgg::normalFormBestResponseList(int playerNumber, Gambit::PureStrategyProfile p, Gambit::GameTableRep *nfg) {
+ // Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(nfg)};
+ // Gambit::PureStrategyProfile p = *iter;
   Gambit::List<Gambit::GameStrategy> bestResponses = p->GetBestResponse(nfg->GetPlayer(playerNumber+1));
-  //cout << endl; 
-  //auto bestResponse1 = bestResponses[1];
-  //auto b = *bestResponse1;
-  //cout << b.GetNumber();
-  //cout << endl;
-  //return b.GetNumber();
   return bestResponses;
 }
 
-rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, int strategyNumber) {
+rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, Gambit::GameStrategy nfgStrategy) {
   createFeasiblePureStrategyProfiles();
+  int strategyNumber = (*nfgStrategy).GetNumber();
   /*vector<vector<vector<int>>> setOfPureStrategyProfiles;
   for(int i=0; i<numPlayers; ++i) {
     vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
@@ -289,15 +287,134 @@ rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, int str
   return feasiblePureStrategyProfiles[playerNumber][strategyNumber-1];
 }
 
-int rgg::nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse) {
+rgg::pureStrategy rgg::nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse) {
   for(int i = 1; i<=bestResponseList.size(); i++) {
-    pureStrategy nfgBestResponse = convertNFGStrategyToRGGStrategy(playerNumber, (*(bestResponseList[i])).GetNumber());
+    pureStrategy nfgBestResponse = convertNFGStrategyToRGGStrategy(playerNumber, bestResponseList[i]);
     if(bestResponse == nfgBestResponse)
-      return i;
+      return nfgBestResponse;
   }
-  return -1;
+  cout << endl << endl <<"ERROR: Best Response List Does Not Contain RGG Best Response " << endl << endl;
+  return vector<int> {};
 }
 
+
+rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
+  vector<double> uGradient = this->getUtilityGradient(playerID, psp);
+  int ltMatrixRowCount, ltMatrixColCount, ltMatrixSize;
+  int eqMatrixRowCount, eqMatrixColCount, eqMatrixSize;
+  int problemMatrixCount;
+  if(ltMatrices[playerID].size() == 0) {
+    ltMatrixRowCount = 0;
+    ltMatrixColCount = 0;
+    ltMatrixSize = 0;
+  } else {
+    ltMatrixRowCount = ltMatrices[playerID].size();
+    ltMatrixColCount = ltMatrices[playerID][0].size(); 
+    ltMatrixSize = ltMatrixRowCount * ltMatrixColCount;
+  } 
+  if(eqMatrices[playerID].size() == 0) {
+    eqMatrixRowCount = 0;
+    eqMatrixColCount = 0;
+    eqMatrixSize = 0;
+  } else { 
+    eqMatrixRowCount = eqMatrices[playerID].size();
+    eqMatrixColCount = eqMatrices[playerID][0].size(); 
+    eqMatrixSize = eqMatrixRowCount * eqMatrixColCount;
+  }
+  int totalRowCount = ltMatrixRowCount + eqMatrixRowCount;
+  problemMatrixCount = ltMatrixColCount * totalRowCount;
+  glp_prob *lp;
+  int ia[1+problemMatrixCount], ja[1+problemMatrixCount];
+  double ar[1+problemMatrixCount];
+  lp = glp_create_prob();
+  glp_set_obj_dir(lp, GLP_MAX);
+  glp_add_rows(lp, totalRowCount);
+  if(ltMatrixRowCount > 0) {
+    for(int i = 1; i <= ltMatrixRowCount; ++i) {
+      glp_set_row_bnds(lp, i, GLP_UP, 0, double(ltVectors[playerID][i-1]));
+    }
+  }
+  if(eqMatrixRowCount > 0) {
+    for(int i = 1; i <= eqMatrixRowCount; ++i) {
+      glp_set_row_bnds(lp, ltMatrixRowCount + i, GLP_UP, 0, double(eqVectors[playerID][i-1]));
+    }
+  }
+  glp_add_cols(lp, ltMatrixColCount);
+  for(int i = 1; i <= ltMatrixColCount; ++i) {
+    glp_set_col_bnds(lp, i, GLP_FR, 0, 0);
+    glp_set_obj_coef(lp, i, uGradient[i-1]);
+  }
+  int currRow = 1;
+  int currCol = 1;
+  if(ltMatrixSize > 0) {
+    for(int i = 1; i <= ltMatrixSize; ++i) {
+      ia[i] = currRow , ja[i] = currCol , ar[i] = ltMatrices[playerID][currRow-1][currCol-1];
+      if(currCol == ltMatrixColCount) {
+        currRow += 1;
+        currCol = 1;
+      }
+      else {
+        currCol += 1;
+      }
+    }
+  }
+  currRow = 1;
+  currCol = 1;
+  if(eqMatrixSize > 0) {
+    for(int i = ltMatrixSize+1; i <= problemMatrixCount; ++i) {
+      ia[i] = (currRow + ltMatrixRowCount) , ja[i] = currCol , ar[i] = eqMatrices[playerID][currRow-1][currCol-1];
+      if(currCol == ltMatrixColCount) {
+        currRow += 1;
+        currCol = 1;
+      }
+      else {
+        currCol += 1;
+      }
+    }
+  }
+  glp_load_matrix(lp, problemMatrixCount, ia, ja, ar); 
+  glp_simplex(lp, NULL);
+  double z = glp_get_obj_val(lp);
+  //cout << "z = " << z << endl;
+  //int cprim[ltMatrixCount];
+  pureStrategy ps(ltMatrixColCount);
+  for(int i = 1; i <=ltMatrixColCount; i++) {
+    ps[i-1] = glp_get_col_prim(lp,i);
+    //pureStrategyProfile[playerID][i-1] = glp_get_col_prim(lp, i);
+    //cout << "x" << i << " = " << glp_get_col_prim(lp,i) << " ";
+  }
+  /*cout << endl;
+  cout << "i array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ia[i] << " ";
+  cout << endl;
+  cout << "j array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ja[i] << " ";
+  cout << endl;
+  cout << "a array: ";
+  for(int i = 1; i <= problemMatrixCount; ++i)
+    cout << ar[i] << " ";
+  cout << endl;
+  glp_print_sol(lp, "hello.txt");
+  cout << endl << endl;
+  cout << "Checking Matrix" << endl;
+  for(int i = 1; i <= ltMatrixRowCount; i++) {
+    int ind[ltMatrixColCount];
+    double val[ltMatrixColCount];
+    int len = glp_get_mat_row(lp, i, ind, val);
+    cout << "Length " << len << endl;
+    cout << "Row " << i << endl;
+    cout << "Index and Value pairs: ";
+    for(int j = 1; j <= len; j++) {
+      cout << ind[j] << " " << val[j] << endl;
+    }
+    cout << endl;
+  }*/
+  glp_delete_prob(lp);
+  glp_free_env();
+  return ps;
+} 
 
 void rgg::multiLinearSolve() {
   int playerID;
@@ -306,123 +423,9 @@ void rgg::multiLinearSolve() {
   bool done = false;
   while(done == false) { 
     for(playerID = 0; playerID < numPlayers; playerID++) {   
-      vector<double> uGradient = this->getUtilityGradient(playerID, pureStrategyProfile);
-      int ltMatrixRowCount, ltMatrixColCount, ltMatrixSize;
-      int eqMatrixRowCount, eqMatrixColCount, eqMatrixSize;
-      int problemMatrixCount;
-      if(ltMatrices[playerID].size() == 0) {
-        ltMatrixRowCount = 0;
-        ltMatrixColCount = 0;
-        ltMatrixSize = 0;
-      } else {
-        ltMatrixRowCount = ltMatrices[playerID].size();
-        ltMatrixColCount = ltMatrices[playerID][0].size(); 
-        ltMatrixSize = ltMatrixRowCount * ltMatrixColCount;
-      } 
-      if(eqMatrices[playerID].size() == 0) {
-        eqMatrixRowCount = 0;
-        eqMatrixColCount = 0;
-        eqMatrixSize = 0;
-      } else { 
-        eqMatrixRowCount = eqMatrices[playerID].size();
-        eqMatrixColCount = eqMatrices[playerID][0].size(); 
-        eqMatrixSize = eqMatrixRowCount * eqMatrixColCount;
-      }
-      int totalRowCount = ltMatrixRowCount + eqMatrixRowCount;
-      problemMatrixCount = ltMatrixColCount * totalRowCount;
-      //cout << "Problem's Matrix Has " << problemMatrixCount << " values in it " <<  endl << endl;
-      glp_prob *lp;
-      int ia[1+problemMatrixCount], ja[1+problemMatrixCount];
-      double ar[1+problemMatrixCount];
-      lp = glp_create_prob();
-      glp_set_obj_dir(lp, GLP_MAX);
-      glp_add_rows(lp, totalRowCount);
-      if(ltMatrixRowCount > 0) {
-        for(int i = 1; i <= ltMatrixRowCount; ++i) {
-          glp_set_row_bnds(lp, i, GLP_UP, 0, double(ltVectors[playerID][i-1]));
-        }
-      }
-      if(eqMatrixRowCount > 0) {
-        for(int i = 1; i <= eqMatrixRowCount; ++i) {
-          glp_set_row_bnds(lp, ltMatrixRowCount + i, GLP_UP, 0, double(eqVectors[playerID][i-1]));
-        }
-      }
-      glp_add_cols(lp, ltMatrixColCount);
-      for(int i = 1; i <= ltMatrixColCount; ++i) {
-        glp_set_col_bnds(lp, i, GLP_FR, 0, 0);
-        glp_set_obj_coef(lp, i, uGradient[i-1]);
-      }
-      int currRow = 1;
-      int currCol = 1;
-      if(ltMatrixSize > 0) {
-        for(int i = 1; i <= ltMatrixSize; ++i) {
-          ia[i] = currRow , ja[i] = currCol , ar[i] = ltMatrices[playerID][currRow-1][currCol-1];
-          if(currCol == ltMatrixColCount) {
-            currRow += 1;
-            currCol = 1;
-          }
-          else {
-            currCol += 1;
-          }
-        }
-      }
-      currRow = 1;
-      currCol = 1;
-      if(eqMatrixSize > 0) {
-        for(int i = ltMatrixSize+1; i <= problemMatrixCount; ++i) {
-          ia[i] = (currRow + ltMatrixRowCount) , ja[i] = currCol , ar[i] = eqMatrices[playerID][currRow-1][currCol-1];
-          if(currCol == ltMatrixColCount) {
-            currRow += 1;
-            currCol = 1;
-          }
-          else {
-            currCol += 1;
-          }
-        }
-      }
-      glp_load_matrix(lp, problemMatrixCount, ia, ja, ar); 
-      glp_simplex(lp, NULL);
-      double z = glp_get_obj_val(lp);
-      //cout << "z = " << z << endl;
-      //int cprim[ltMatrixCount];
-      for(int i = 1; i <=ltMatrixColCount; i++) {
-        pureStrategyProfile[playerID][i-1] = glp_get_col_prim(lp, i);
-        //cout << "x" << i << " = " << glp_get_col_prim(lp,i) << " ";
-      }
-      /*cout << endl;
-      cout << "i array: ";
-      for(int i = 1; i <= problemMatrixCount; ++i)
-        cout << ia[i] << " ";
-      cout << endl;
-      cout << "j array: ";
-      for(int i = 1; i <= problemMatrixCount; ++i)
-        cout << ja[i] << " ";
-      cout << endl;
-      cout << "a array: ";
-      for(int i = 1; i <= problemMatrixCount; ++i)
-        cout << ar[i] << " ";
-      cout << endl;
-      glp_print_sol(lp, "hello.txt");
-      cout << endl << endl;
-      cout << "Checking Matrix" << endl;
-      for(int i = 1; i <= ltMatrixRowCount; i++) {
-        int ind[ltMatrixColCount];
-        double val[ltMatrixColCount];
-        int len = glp_get_mat_row(lp, i, ind, val);
-        cout << "Length " << len << endl;
-        cout << "Row " << i << endl;
-        cout << "Index and Value pairs: ";
-        for(int j = 1; j <= len; j++) {
-          cout << ind[j] << " " << val[j] << endl;
-        }
-        cout << endl;
-      }*/
-      glp_delete_prob(lp);
-      glp_free_env();
+      pureStrategy ps = rggBestResponse(playerID, pureStrategyProfile);
+      pureStrategyProfile[playerID] = ps;
     }
-    //cout << endl << endl << "EQUALITY CHECK " << endl;
-    //cout << (pureStrategyProfile == newPureStrategyProfile);
-    //cout << endl << endl;
     if(pureStrategyProfile == oldPureStrategyProfile) {
       done = true;
     } else {

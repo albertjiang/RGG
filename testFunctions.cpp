@@ -10,7 +10,6 @@ using std::cout;
 using std::endl;
 
 int main() {
-  
   /*trie_map<double> m;
   vector<int> t {1,2,3};
   m.insert(std::make_pair(t, 2.4));
@@ -108,12 +107,20 @@ int main() {
   cout << "Creating Normal Form Rep " << endl; 
   Gambit::GameTableRep* nfg = r->toNormalForm();
   cout << "Printing Normal Form Rep " << endl;
-  std::ostringstream f;
-  Gambit::StrategySupportProfile(nfg).WriteNfgFile(f);
-  cout << f.str();
-  Gambit::List<Gambit::GameStrategy> bestResponseList = r->normalFormBestResponseList(0, nfg);
-  int index = r->nfBestResponseListContainsRGGBestResponse(0, bestResponseList, vector<int>{1,1,1});
-  cout << endl << endl << "Index: " << index << endl << endl;
+  r->printNormalFormGame(nfg);  
+  //std::ostringstream f;
+  //Gambit::StrategySupportProfile(nfg).WriteNfgFile(f);
+  //cout << f.str();
+  Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(nfg)};
+  Gambit::PureStrategyProfile p = *iter;
+ 
+  Gambit::List<Gambit::GameStrategy> bestResponseList = r->normalFormBestResponseList(0, p, nfg);
+  vector<int> nfgBestResponse = r->nfBestResponseListContainsRGGBestResponse(0, bestResponseList, vector<int>{1,1,1});
+  cout << endl << endl << "NFG Best Response: " << endl;
+  for(auto n: nfgBestResponse) {
+    cout << n << " ";
+  } 
+  cout << endl;
   //rgg::pureStrategy ps = r->convertNFGStrategyToRGGStrategy(0, r->normalFormFirstBestResponse(0,nfg));
   //cout << "Best Normal Form Strategy:" << endl;
   //for(auto x: ps)

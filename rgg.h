@@ -60,11 +60,13 @@ class rgg {
     Gambit::GameTableRep* toNormalForm();
 
     void multiLinearSolve(); 
-    Gambit::List<Gambit::GameStrategy> normalFormBestResponseList(int playerNumber, Gambit::GameTableRep *nfg);
-    pureStrategy convertNFGStrategyToRGGStrategy(int playerNumber, int strategyNumber);
-    int nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse);
+    Gambit::List<Gambit::GameStrategy> normalFormBestResponseList(int playerNumber, Gambit::PureStrategyProfile, Gambit::GameTableRep *nfg);
+    pureStrategy convertNFGStrategyToRGGStrategy(int playerNumber, Gambit::GameStrategy);
+    pureStrategy nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse);
     void createFeasiblePureStrategyProfiles();
+    void printNormalFormGame(Gambit::GameTableRep *nfg);
 
+    pureStrategy rggBestResponse(int playerNumber, pureStrategyProfile psp);
 };
 
 #endif
