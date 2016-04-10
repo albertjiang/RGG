@@ -67,6 +67,10 @@ class rgg {
     void printNormalFormGame(Gambit::GameTableRep *nfg);
 
     pureStrategy rggBestResponse(int playerNumber, pureStrategyProfile psp);
+
+
+    pureStrategyProfile convertNFGPureStrategyProfileToRGGFormat(Gambit::PureStrategyProfile);
+
 };
 
 #endif

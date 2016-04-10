@@ -162,7 +162,8 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
   for(auto j=0; j<newNumResourceNodes; j++){
     vector<vector<int>> configs = configurations(newNumPlayers, newNeighbors[j].size());
     for(auto i=0; i<configs.size(); i++){
-      double randNum =  (100) * ( (double)rand() / (double)RAND_MAX );
+      double randNum =  (20) * ( (double)rand() / (double)RAND_MAX );
+      randNum -= 10;
       utilityFunctions[j].insert(std::make_pair(configs[i], randNum));
     }
   }
@@ -238,6 +239,7 @@ Gambit::GameTableRep* rgg::toNormalForm() {
     //dimensions[n] = setOfPureStrategyProfiles[n-1].size();
     dimensions[n] = feasiblePureStrategyProfiles[n-1].size();
   }
+
   Gambit::GameTableRep *g = new Gambit::GameTableRep(dimensions,false);
   for(Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(g)}; !iter.AtEnd(); iter++) {
     Gambit::PureStrategyProfile p = *iter;
@@ -290,6 +292,7 @@ rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, Gambit:
 rgg::pureStrategy rgg::nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse) {
   for(int i = 1; i<=bestResponseList.size(); i++) {
     pureStrategy nfgBestResponse = convertNFGStrategyToRGGStrategy(playerNumber, bestResponseList[i]);
+    cout << endl;
     if(bestResponse == nfgBestResponse)
       return nfgBestResponse;
   }
@@ -442,3 +445,10 @@ void rgg::multiLinearSolve() {
   cout << endl << endl;
 }
 
+rgg::pureStrategyProfile rgg::convertNFGPureStrategyProfileToRGGFormat(Gambit::PureStrategyProfile psp) {
+  pureStrategyProfile newpsp;
+  for(int n = 0; n < getNumPlayers(); n++) {
+    newpsp.push_back(convertNFGStrategyToRGGStrategy(n, psp->GetStrategy(n+1)));
+  }
+  return newpsp;
+}

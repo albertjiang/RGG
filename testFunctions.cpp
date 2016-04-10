@@ -115,7 +115,10 @@ int main() {
   Gambit::PureStrategyProfile p = *iter;
  
   Gambit::List<Gambit::GameStrategy> bestResponseList = r->normalFormBestResponseList(0, p, nfg);
-  vector<int> nfgBestResponse = r->nfBestResponseListContainsRGGBestResponse(0, bestResponseList, vector<int>{1,1,1});
+  
+  //need to actually get pureStrategyProfile in order to do this test
+  //vector<int> nfgBestResponse = r->nfBestResponseListContainsRGGBestResponse(0, bestResponseList, pureStrategyProfile[0]);
+  
   cout << endl << endl << "NFG Best Response: " << endl;
   for(auto n: nfgBestResponse) {
     cout << n << " ";
