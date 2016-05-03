@@ -6,7 +6,9 @@
 #include "rgg.h"
 #include <chrono>
 #include "ubcsat-time.h"
+#include <tuple>
 
+using std::get;
 using std::vector;
 using std::cout;
 using std::endl;
@@ -31,6 +33,7 @@ int main() {
   vector<vector<int>> newltVectors{};
   vector<vector<int>> neighbors = rgg::createSelfLoopGraph(numNodes);
   rgg* r = rgg::makeRandomRGG(numPlayers,numNodes, neweqMatrices, neweqVectors, newLtMatrices, newltVectors, neighbors);
+  
   r->addDefaultLT();
   auto t10 = Clock::now();
   auto makeRGGTime = std::chrono::duration_cast<std::chrono::nanoseconds>(t10 - t9).count();
@@ -95,4 +98,15 @@ int main() {
   }
   cout << endl << endl;
   cout << "RGG Best Response Algorithm is " << (double)nfgBestResponseTime/(double)rggBestResponseTime << " times as fast as NFG Best Response. " << endl << endl;
+  
+  int rggSize = 0;
+  for(auto t: r->utilityFunctions) {
+   rggSize += t.size(); 
+  }
+  cout << "Size of the RGG Representation: " << rggSize << endl;
+  int nfgSize = 1;
+  for(auto f : r->feasiblePureStrategyProfiles) {
+    nfgSize *= f.size();
+  }
+  cout << "Size of the NFG Representation: " << nfgSize << endl;
 }

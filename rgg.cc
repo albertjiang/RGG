@@ -173,18 +173,18 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
 
 void rgg::addDefaultLT() {
   for(int p=0; p<numPlayers; p++) {
-      vector<vector<int>> newLTMatrix(2*numResourceNodes, vector<int>(numResourceNodes));
-      for(int i=0; i<numResourceNodes; i++) {
-        newLTMatrix[i][i] = 1;
-        newLTMatrix[i+numResourceNodes][i] = -1;
-      }
-      ltMatrices.push_back(newLTMatrix);
-      vector<int> newLTVector(2*numResourceNodes);
-      for(int i=0; i<numResourceNodes; i++) {
-        newLTVector[i] = 1;
-        newLTVector[i+numResourceNodes] = 0;
-      }
-      ltVectors.push_back(newLTVector);
+    vector<vector<int>> newLTMatrix(2*numResourceNodes, vector<int>(numResourceNodes));
+    for(int i=0; i<numResourceNodes; i++) {
+      newLTMatrix[i][i] = 1;
+      newLTMatrix[i+numResourceNodes][i] = -1;
+    }
+    ltMatrices.push_back(newLTMatrix);
+    vector<int> newLTVector(2*numResourceNodes);
+    for(int i=0; i<numResourceNodes; i++) {
+      newLTVector[i] = 1;
+      newLTVector[i+numResourceNodes] = 0;
+    }
+    ltVectors.push_back(newLTVector);
   }   
 }
 
@@ -213,7 +213,7 @@ void rgg::createFeasiblePureStrategyProfiles() {
       vector<vector<int>>  playerPureStrategyProfile;
       for(auto p:possiblePureStrategies){
         if(std::get<0>(isFeasible(i, p))) {
-         playerPureStrategyProfile.push_back(p);
+          playerPureStrategyProfile.push_back(p);
         }
       }
       feasiblePureStrategyProfiles.push_back(playerPureStrategyProfile);
@@ -222,33 +222,17 @@ void rgg::createFeasiblePureStrategyProfiles() {
 }
 
 Gambit::GameTableRep* rgg::toNormalForm() {
-  /*vector<vector<vector<int>>> setOfPureStrategyProfiles;
-  for(int i=0; i<numPlayers; ++i) {
-    vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
-    vector<vector<int>>  playerPureStrategyProfile;
-    for(auto p:possiblePureStrategies){
-      if(std::get<0>(isFeasible(i, p))) {
-        playerPureStrategyProfile.push_back(p);
-      } 
-    }
-    setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
-  }*/
   createFeasiblePureStrategyProfiles();
   Gambit::Array<int> dimensions(numPlayers);
-  for(int n=1; n<=numPlayers;n++) {
-    //dimensions[n] = setOfPureStrategyProfiles[n-1].size();
+  for(int n=1; n<=numPlayers; n++) {
     dimensions[n] = feasiblePureStrategyProfiles[n-1].size();
   }
-
   Gambit::GameTableRep *g = new Gambit::GameTableRep(dimensions,false);
   for(Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(g)}; !iter.AtEnd(); iter++) {
     Gambit::PureStrategyProfile p = *iter;
     Gambit::GameOutcome o = p->GetOutcome();
     pureStrategyProfile currP;
     for(int pl = 0; pl<numPlayers; pl++) {
-      //cout << endl << p->GetStrategy(pl+1)->GetId() << endl;
-      //cout << Gambit::lexical_cast<std::string>((p)->GetStrategy(pl+1)->GetLabel()) << endl;
-      //currP.push_back(setOfPureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
       currP.push_back(feasiblePureStrategyProfiles[pl][(p->GetStrategy(pl+1)->GetNumber())-1]);
     }
     for(int pl = 0; pl <numPlayers; pl++) {
@@ -266,8 +250,6 @@ void rgg::printNormalFormGame(Gambit::GameTableRep *nfg) {
 }
 
 Gambit::List<Gambit::GameStrategy> rgg::normalFormBestResponseList(int playerNumber, Gambit::PureStrategyProfile p, Gambit::GameTableRep *nfg) {
- // Gambit::StrategyProfileIterator iter{Gambit::StrategySupportProfile(nfg)};
- // Gambit::PureStrategyProfile p = *iter;
   Gambit::List<Gambit::GameStrategy> bestResponses = p->GetBestResponse(nfg->GetPlayer(playerNumber+1));
   return bestResponses;
 }
@@ -275,17 +257,6 @@ Gambit::List<Gambit::GameStrategy> rgg::normalFormBestResponseList(int playerNum
 rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, Gambit::GameStrategy nfgStrategy) {
   createFeasiblePureStrategyProfiles();
   int strategyNumber = (*nfgStrategy).GetNumber();
-  /*vector<vector<vector<int>>> setOfPureStrategyProfiles;
-  for(int i=0; i<numPlayers; ++i) {
-    vector<vector<int>> possiblePureStrategies = configurations(1,numResourceNodes);
-    vector<vector<int>>  playerPureStrategyProfile;
-    for(auto p:possiblePureStrategies){
-      if(std::get<0>(isFeasible(i, p))) {
-        playerPureStrategyProfile.push_back(p);
-      }
-    }
-    setOfPureStrategyProfiles.push_back(playerPureStrategyProfile);
-  }*/
   return feasiblePureStrategyProfiles[playerNumber][strategyNumber-1];
 }
 
@@ -378,42 +349,10 @@ rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
   glp_load_matrix(lp, problemMatrixCount, ia, ja, ar); 
   glp_simplex(lp, NULL);
   double z = glp_get_obj_val(lp);
-  //cout << "z = " << z << endl;
-  //int cprim[ltMatrixCount];
   pureStrategy ps(ltMatrixColCount);
   for(int i = 1; i <=ltMatrixColCount; i++) {
     ps[i-1] = glp_get_col_prim(lp,i);
-    //pureStrategyProfile[playerID][i-1] = glp_get_col_prim(lp, i);
-    //cout << "x" << i << " = " << glp_get_col_prim(lp,i) << " ";
   }
-  /*cout << endl;
-  cout << "i array: ";
-  for(int i = 1; i <= problemMatrixCount; ++i)
-    cout << ia[i] << " ";
-  cout << endl;
-  cout << "j array: ";
-  for(int i = 1; i <= problemMatrixCount; ++i)
-    cout << ja[i] << " ";
-  cout << endl;
-  cout << "a array: ";
-  for(int i = 1; i <= problemMatrixCount; ++i)
-    cout << ar[i] << " ";
-  cout << endl;
-  glp_print_sol(lp, "hello.txt");
-  cout << endl << endl;
-  cout << "Checking Matrix" << endl;
-  for(int i = 1; i <= ltMatrixRowCount; i++) {
-    int ind[ltMatrixColCount];
-    double val[ltMatrixColCount];
-    int len = glp_get_mat_row(lp, i, ind, val);
-    cout << "Length " << len << endl;
-    cout << "Row " << i << endl;
-    cout << "Index and Value pairs: ";
-    for(int j = 1; j <= len; j++) {
-      cout << ind[j] << " " << val[j] << endl;
-    }
-    cout << endl;
-  }*/
   glp_delete_prob(lp);
   glp_free_env();
   return ps;
