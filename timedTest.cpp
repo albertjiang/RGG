@@ -1,8 +1,8 @@
 #include<iostream>
 #include<vector>
 #include<utility>
-#include "proj_func.h"
-#include "trie_map.h"
+#include "libagg/proj_func.h"
+#include "libagg/trie_map.h"
 #include "rgg.h"
 #include <chrono>
 #include "ubcsat-time.h"

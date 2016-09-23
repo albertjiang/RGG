@@ -4,8 +4,8 @@
 #include <vector>
 #include <iterator>
 #include <tuple>
-#include "proj_func.h"
-#include "trie_map.h"
+#include "libagg/proj_func.h"
+#include "libagg/trie_map.h"
 #include "./libgambit/libgambit.h"
 #include "./libgambit/gametable.h"
 
