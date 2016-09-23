@@ -18,6 +18,8 @@ class rgg {
   public:
     typedef vector<int> pureStrategy;
     typedef vector<pureStrategy> pureStrategyProfile;
+    typedef vector<double> marginalStrategy;
+    typedef vector<marginalStrategy> marginalStrategyProfile;
     typedef vector<vector<int>>	intMatrix;
 
     int numPlayers;
@@ -28,6 +30,7 @@ class rgg {
     vector<vector<int>> ltVectors;
     vector<vector<int>> neighbors;
     vector<trie_map<double>> utilityFunctions;
+    bool multilinear;
     vector<pureStrategyProfile> feasiblePureStrategyProfiles;
 
     rgg(int numPlayers, int numResourceNodes,
@@ -67,7 +70,8 @@ class rgg {
     void printNormalFormGame(Gambit::GameTableRep *nfg);
 
     pureStrategy rggBestResponse(int playerNumber, pureStrategyProfile psp);
-
+    std::tuple<pureStrategy,double> linOpt(int playerID, const vector<double>& objCoeffs); 
+    bool computeIsMultilinear();
     pureStrategyProfile convertNFGPureStrategyProfileToRGGFormat(Gambit::PureStrategyProfile);
 
 };

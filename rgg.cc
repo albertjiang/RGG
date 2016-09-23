@@ -6,9 +6,11 @@
 #include<cstdlib>
 #include<ctime>
 #include<glpk.h>
+#include <cassert>
 
 using std::valarray;
 using std::cout;
+//using std::assert;
 
 std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy &p) {
   if(ltMatrices[playerID].size() == 0) {
@@ -84,6 +86,9 @@ double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
 }
 
 vector<double> rgg::getUtilityGradient(int playerID, pureStrategyProfile &p) {
+  if(!multilinear){
+	throw Gambit::UndefinedException();
+  }
   vector<double> utilities(numResourceNodes,0);
   vector<int> totalConfig(numResourceNodes,0);
   for(int a=0; a<p.size(); a++){
@@ -125,11 +130,17 @@ rgg::rgg(int newNumPlayers, int newNumResourceNodes,
   numPlayers = newNumPlayers;
   numResourceNodes = newNumResourceNodes;
   eqMatrices = newEqMatrices;
+  if (eqMatrices.size()==0) eqMatrices=vector<intMatrix>(numPlayers);
   eqVectors = newEqVectors;
+  if (eqVectors.size()==0) eqVectors=vector<vector<int>>(numPlayers);
+
   ltMatrices = newLtMatrices;
   ltVectors = newLtVectors;
+  if(ltMatrices.size()==0) addDefaultLT();
+
   neighbors = newNeighbors;
   utilityFunctions = newUtilFuncs;
+  multilinear = computeIsMultilinear();
 }
 
 void Rec(vector<int> vec, vector<vector<int>> &retVec, int numPlayers, int numDigits) {
@@ -172,19 +183,25 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
 }
 
 void rgg::addDefaultLT() {
+  if (ltMatrices.size()==0)ltMatrices=vector<intMatrix>(numPlayers);
+  if (ltVectors.size()==0)ltVectors=vector<vector<int>>(numPlayers);
+  assert(ltMatrices.size()==numPlayers && ltVectors.size()==numPlayers);
   for(int p=0; p<numPlayers; p++) {
+    assert(ltMatrices[p].size()==ltVectors[p].size());
+    if (ltMatrices[p].size()!=0) continue;
+
     vector<vector<int>> newLTMatrix(2*numResourceNodes, vector<int>(numResourceNodes));
     for(int i=0; i<numResourceNodes; i++) {
       newLTMatrix[i][i] = 1;
       newLTMatrix[i+numResourceNodes][i] = -1;
     }
-    ltMatrices.push_back(newLTMatrix);
+    ltMatrices[p]=newLTMatrix;
     vector<int> newLTVector(2*numResourceNodes);
     for(int i=0; i<numResourceNodes; i++) {
       newLTVector[i] = 1;
       newLTVector[i+numResourceNodes] = 0;
     }
-    ltVectors.push_back(newLTVector);
+    ltVectors[p]=newLTVector;
   }   
 }
 
@@ -272,8 +289,28 @@ rgg::pureStrategy rgg::nfBestResponseListContainsRGGBestResponse(int playerNumbe
 }
 
 
+bool rgg::computeIsMultilinear() {
+  bool res=true;
+  for(int node=0;node<numResourceNodes;++node){
+    for(int oPlayer=0;oPlayer<numPlayers; ++oPlayer){
+      vector<double> coeffs(numResourceNodes, 0.0);
+      coeffs[node]=1;
+      for(auto nei: neighbors[node]) coeffs[nei]=1;
+      auto t=linOpt(oPlayer, coeffs);
+      double obj=std::get<1>(t);
+      if (round(obj)>=2 ) return false;
+    }
+  }
+  return res;
+}
+ 
 rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
   vector<double> uGradient = this->getUtilityGradient(playerID, psp);
+  return std::get<0>(linOpt(playerID, uGradient));
+}
+
+std::tuple<rgg::pureStrategy,double> rgg::linOpt(int playerID, const vector<double>& objCoeffs) {
+
   int ltMatrixRowCount, ltMatrixColCount, ltMatrixSize;
   int eqMatrixRowCount, eqMatrixColCount, eqMatrixSize;
   int problemMatrixCount;
@@ -316,7 +353,7 @@ rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
   glp_add_cols(lp, ltMatrixColCount);
   for(int i = 1; i <= ltMatrixColCount; ++i) {
     glp_set_col_bnds(lp, i, GLP_FR, 0, 0);
-    glp_set_obj_coef(lp, i, uGradient[i-1]);
+    glp_set_obj_coef(lp, i, objCoeffs[i-1]);
   }
   int currRow = 1;
   int currCol = 1;
@@ -355,7 +392,7 @@ rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
   }
   glp_delete_prob(lp);
   glp_free_env();
-  return ps;
+  return std::make_tuple(ps,z);
 } 
 
 void rgg::multiLinearSolve() {
