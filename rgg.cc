@@ -10,7 +10,6 @@
 
 using std::valarray;
 using std::cout;
-//using std::assert;
 
 std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, rgg::pureStrategy &p) {
   if(ltMatrices[playerID].size() == 0) {
@@ -20,9 +19,9 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
   else {
     rgg::intMatrix &a = eqMatrices.at(playerID);
     vector<int> sums;
-    for(int i=0; i<a.size(); i++){
+    for(unsigned int i=0; i<a.size(); i++){
       int sum = 0;
-      for(int j=0; j<a[i].size(); j++) {
+      for(unsigned int j=0; j<a[i].size(); j++) {
         sum += a[i][j] * p[j];
       }
       sums.push_back(sum);
@@ -33,9 +32,9 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
 
     rgg::intMatrix &a2 = ltMatrices.at(playerID);
     vector<int> sums2;
-    for(int i=0; i<a2.size(); i++){
+    for(unsigned int i=0; i<a2.size(); i++){
       int sum2 = 0;
-      for(int j=0; j<a2[i].size(); j++) {
+      for(unsigned int j=0; j<a2[i].size(); j++) {
         sum2 += a2[i][j] * p[j];
       }
       sums2.push_back(sum2);
@@ -44,12 +43,12 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
     valarray<int> rightside2(ltVectors[playerID].data(), ltVectors[playerID].size());
     valarray<bool> ltRet = (leftside2 <= rightside2);
 
-    int ltretsum = 0;
+    unsigned int ltretsum = 0;
     for(auto a: ltRet) {
       if(a == true)
         ++ltretsum;
     }
-    int eqretsum = 0;
+    unsigned int eqretsum = 0;
     for(auto a: eqRet) {
       if(a == true)
         ++eqretsum;
@@ -62,15 +61,15 @@ std::tuple<bool, valarray<bool>, valarray<bool>> rgg::isFeasible(int playerID, r
 double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   double u=0;
   vector<int> totalConfig(numResourceNodes,0);
-  for(int a=0; a<p.size(); a++){
-    for(int b=0; b<p[a].size(); b++) {
+  for(unsigned int a=0; a<p.size(); a++){
+    for(unsigned int b=0; b<p[a].size(); b++) {
       totalConfig[b] += p[a][b];
     }
   }
   for(int i=0; i<numResourceNodes; i++) {
     if(p[playerID][i] == 1) {
       vector<int> localConfig(neighbors[i].size());
-      for(int j=0; j<neighbors[i].size(); j++) {
+      for(unsigned int j=0; j<neighbors[i].size(); j++) {
         localConfig[j] = totalConfig[neighbors[i][j]];
       }
       trie_map<double>::iterator curr = utilityFunctions[i].findExact(localConfig);
@@ -85,15 +84,44 @@ double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   return u;
 }
 
-vector<double> rgg::getUtilityGradient(int playerID, pureStrategyProfile &p) {
+
+vector<double> rgg::getUtilityGradient(int playerID, const marginalStrategyProfile &p){
+  if(!multilinear){
+	throw Gambit::UndefinedException();
+  }
+  vector<double> utilities(numResourceNodes,0);
+  for(int node=0;node<numResourceNodes; node++){
+    //init playerID's strat
+    distrib Pr;
+    vector<int> localConfig(neighbors[node].size(), 0);
+    for (unsigned int i=0;i<neighbors[node].size();++i) if (neighbors[node][i] == node) localConfig[i] = 1;
+    Pr.insert(make_pair(localConfig,1.0));
+    //apply other players strat
+    for(int pl=0;pl<numPlayers; ++pl)if (pl!=playerID){
+      distrib projStrat;
+      for (unsigned int i=0;i<neighbors[node].size();++i){
+        vector<int> con (neighbors.size(),0);
+        con[i]=1;
+	projStrat.insert(make_pair(con, p[pl][neighbors[node][i]]));
+      }
+      vector<proj_func*> projFunctions (neighbors[node].size(), new proj_func_SUM);
+      Pr.multiply(projStrat, neighbors[node].size(), projFunctions);
+    }
+    //get payoff
+    utilities[node] = Pr.inner_prod(utilityFunctions[node]);
+  }
+  return utilities;
+}
+
+vector<double> rgg::getUtilityGradient(int playerID, const pureStrategyProfile &p) {
   if(!multilinear){
 	throw Gambit::UndefinedException();
   }
   vector<double> utilities(numResourceNodes,0);
   vector<int> totalConfig(numResourceNodes,0);
-  for(int a=0; a<p.size(); a++){
+  for(int a=0; a<(int)p.size(); a++){
     if(a!=playerID) {
-      for(int b=0; b<p[a].size(); b++) {
+      for(unsigned int b=0; b<p[a].size(); b++) {
        totalConfig[b] += p[a][b];
       }
     }
@@ -101,7 +129,7 @@ vector<double> rgg::getUtilityGradient(int playerID, pureStrategyProfile &p) {
   for(int i=0; i<numResourceNodes; i++) {
     totalConfig[i] += 1;
     vector<int> localConfig(neighbors[i].size());
-    for(int j=0; j<neighbors[i].size(); j++) {
+    for(unsigned int j=0; j<neighbors[i].size(); j++) {
       localConfig[j] = totalConfig[neighbors[i][j]];
     }
     trie_map<double>::iterator curr = utilityFunctions[i].findExact(localConfig);
@@ -172,7 +200,7 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
   vector<trie_map<double>> utilityFunctions(newNumResourceNodes);
   for(auto j=0; j<newNumResourceNodes; j++){
     vector<vector<int>> configs = configurations(newNumPlayers, newNeighbors[j].size());
-    for(auto i=0; i<configs.size(); i++){
+    for(unsigned int i=0; i<configs.size(); i++){
       double randNum =  (20) * ( (double)rand() / (double)RAND_MAX );
       randNum -= 10;
       utilityFunctions[j].insert(std::make_pair(configs[i], randNum));
@@ -185,7 +213,7 @@ rgg* rgg::makeRandomRGG(int newNumPlayers, int newNumResourceNodes,
 void rgg::addDefaultLT() {
   if (ltMatrices.size()==0)ltMatrices=vector<intMatrix>(numPlayers);
   if (ltVectors.size()==0)ltVectors=vector<vector<int>>(numPlayers);
-  assert(ltMatrices.size()==numPlayers && ltVectors.size()==numPlayers);
+  assert((int)ltMatrices.size()==numPlayers && (int)ltVectors.size()==numPlayers);
   for(int p=0; p<numPlayers; p++) {
     assert(ltMatrices[p].size()==ltVectors[p].size());
     if (ltMatrices[p].size()!=0) continue;
@@ -278,7 +306,7 @@ rgg::pureStrategy rgg::convertNFGStrategyToRGGStrategy(int playerNumber, Gambit:
 }
 
 rgg::pureStrategy rgg::nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse) {
-  for(int i = 1; i<=bestResponseList.size(); i++) {
+  for(unsigned int i = 1; i<=bestResponseList.size(); i++) {
     pureStrategy nfgBestResponse = convertNFGStrategyToRGGStrategy(playerNumber, bestResponseList[i]);
     cout << endl;
     if(bestResponse == nfgBestResponse)
@@ -304,8 +332,13 @@ bool rgg::computeIsMultilinear() {
   return res;
 }
  
-rgg::pureStrategy rgg::rggBestResponse(int playerID, pureStrategyProfile psp) {
+rgg::pureStrategy rgg::rggBestResponse(int playerID, const pureStrategyProfile& psp) {
   vector<double> uGradient = this->getUtilityGradient(playerID, psp);
+  return std::get<0>(linOpt(playerID, uGradient));
+}
+
+rgg::pureStrategy rgg::rggBestResponse(int playerID, const marginalStrategyProfile& msp) {
+  vector<double> uGradient = this->getUtilityGradient(playerID, msp);
   return std::get<0>(linOpt(playerID, uGradient));
 }
 

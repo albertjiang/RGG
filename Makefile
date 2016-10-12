@@ -1,4 +1,4 @@
-CXXFLAGS= -std=c++11 -I. -I/users/xjiang/include -L/users/xjiang/lib 
+CXXFLAGS= -std=c++11 -W -I. -I/users/xjiang/include -L/users/xjiang/lib 
 LIBAGG_OBJS= libagg/agg.o libagg/bagg.o
 LIBGAMBIT_OBJS= libgambit/game.o libgambit/gametable.o libgambit/rational.o libgambit/integer.o libgambit/vector.o libgambit/mixed.o \
     libgambit/gameagg.o libgambit/gamebagg.o libgambit/gametree.o libgambit/stratspt.o libgambit/stratitr.o \
@@ -8,6 +8,8 @@ LIBGAMBIT_OBJS= libgambit/game.o libgambit/gametable.o libgambit/rational.o libg
 default: main
 
 rgg.o:rgg.h rgg.cc
+
+timedTest.o:rgg.h timedTest.cpp
 
 clean:
 	rm *.o libgambit/*.o libagg/*.o main
