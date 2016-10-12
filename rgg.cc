@@ -84,7 +84,14 @@ double rgg::getPureStrategyUtility(int playerID, pureStrategyProfile &p) {
   return u;
 }
 
-
+double rgg::getExpectedUtility(int playerID, const marginalStrategyProfile& p){
+  if(!multilinear){
+	throw Gambit::UndefinedException();
+  }
+  auto g=getUtilityGradient(playerID,p);
+  valarray<double> gr (g.data(),g.size());
+  return (p[playerID] * gr).sum();
+}
 vector<double> rgg::getUtilityGradient(int playerID, const marginalStrategyProfile &p){
   if(!multilinear){
 	throw Gambit::UndefinedException();
@@ -341,6 +348,17 @@ rgg::pureStrategy rgg::rggBestResponse(int playerID, const marginalStrategyProfi
   vector<double> uGradient = this->getUtilityGradient(playerID, msp);
   return std::get<0>(linOpt(playerID, uGradient));
 }
+double rgg::checkEpsNash(const marginalStrategyProfile& msp){
+  double eps=0;
+  for(int i=0;i<numPlayers;++i){
+    vector<double> uGradient = this->getUtilityGradient(i, msp);
+    double bru=std::get<1>(linOpt(i,uGradient));
+    valarray<double> gr (uGradient.data(),uGradient.size());
+    double eu= (msp[i] * gr).sum();
+    eps=std::max(eps, bru-eu);
+  }
+  return eps;
+}
 
 std::tuple<rgg::pureStrategy,double> rgg::linOpt(int playerID, const vector<double>& objCoeffs) {
 
@@ -428,30 +446,87 @@ std::tuple<rgg::pureStrategy,double> rgg::linOpt(int playerID, const vector<doub
   return std::make_tuple(ps,z);
 } 
 
-void rgg::multiLinearSolve() {
-  int playerID;
-  vector<vector<int>> pureStrategyProfile(numPlayers, vector<int>(numResourceNodes, 0));
-  vector<vector<int>> oldPureStrategyProfile = pureStrategyProfile;
-  bool done = false;
-  while(done == false) { 
-    for(playerID = 0; playerID < numPlayers; playerID++) {   
-      pureStrategy ps = rggBestResponse(playerID, pureStrategyProfile);
-      pureStrategyProfile[playerID] = ps;
+rgg::marginalStrategyProfile rgg::fictitiousPlay(int numIter){
+  vector<vector<int>> psp(numPlayers, vector<int>(numResourceNodes, 0));
+
+
+  for(int i=0;i<numPlayers;++i)
+    if(! std::get<0>(isFeasible(i, psp[i]))){
+      cout<<"Player "<<i<<" init strategy infeasible"<<endl;
+      vector<double> coeffs(numResourceNodes, 1.0);
+      psp[i]=std::get<0>(linOpt(i, coeffs));
+      cout<<"Instead using strategy ";
+      for(auto x:psp[i]) cout<<x<<" ";
+      cout<<endl;
+  }
+
+  marginalStrategyProfile msp(numPlayers, marginalStrategy(numResourceNodes));
+  for(int i=0;i<numPlayers;++i)for(int j=0;j<numResourceNodes;++j) msp[i][j]=psp[i][j];
+
+  marginalStrategyProfile oldmsp=msp;
+  //bool done=false;
+  int iter=1;
+  for(;iter<=numIter;++iter, oldmsp=msp){
+    for(int i=0;i<numPlayers;++i){
+      pureStrategy ps=rggBestResponse(i, msp); //non-simultaneous: respond to msp instead of oldmsp
+      marginalStrategy ms(numResourceNodes);
+      for(int j=0;j<numResourceNodes; ++j)ms[j]=ps[j];
+      msp[i] +=  (ms- msp[i]) / iter;
+
+      //auto diff=msp[i]-oldmsp[i];
+      //std::max(std::abs(diff.max()), std::abs( diff.min()));
     }
-    if(pureStrategyProfile == oldPureStrategyProfile) {
-      done = true;
-    } else {
-      oldPureStrategyProfile = pureStrategyProfile;
-    }
+    
   }
   cout << "Printing New Strategy Profile: " << endl;
-  for(auto m : pureStrategyProfile) {
+  for(auto m : msp) {
     for(auto n: m) {
       cout << n << " ";
     } 
     cout << endl;
   }
   cout << endl << endl;
+  return msp;
+}
+
+
+
+rgg::pureStrategyProfile rgg::iterBRSolve() {
+  int playerID;
+  vector<vector<int>> psp(numPlayers, vector<int>(numResourceNodes, 0));
+
+
+  for(int i=0;i<numPlayers;++i)
+    if(! std::get<0>(isFeasible(i, psp[i]))){
+      cout<<"Player "<<i<<" init strategy infeasible"<<endl;
+      vector<double> coeffs(numResourceNodes, 1.0);
+      psp[i]=std::get<0>(linOpt(i, coeffs));
+      cout<<"Instead using strategy ";
+      for(auto x:psp[i]) cout<<x<<" ";
+      cout<<endl;
+  }
+  vector<vector<int>> oldPureStrategyProfile = psp;
+  bool done = false;
+  while(done == false) { 
+    for(playerID = 0; playerID < numPlayers; playerID++) {   
+      pureStrategy ps = rggBestResponse(playerID, psp);
+      psp[playerID] = ps;
+    }
+    if(psp == oldPureStrategyProfile) {
+      done = true;
+    } else {
+      oldPureStrategyProfile = psp;
+    }
+  }
+  cout << "Printing New Strategy Profile: " << endl;
+  for(auto m : psp) {
+    for(auto n: m) {
+      cout << n << " ";
+    } 
+    cout << endl;
+  }
+  cout << endl << endl;
+  return psp;
 }
 
 rgg::pureStrategyProfile rgg::convertNFGPureStrategyProfileToRGGFormat(Gambit::PureStrategyProfile psp) {

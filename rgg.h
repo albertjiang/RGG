@@ -18,7 +18,7 @@ class rgg {
   public:
     typedef vector<int> pureStrategy;
     typedef vector<pureStrategy> pureStrategyProfile;
-    typedef vector<double> marginalStrategy;
+    typedef valarray<double> marginalStrategy;
     typedef vector<marginalStrategy> marginalStrategyProfile;
     typedef vector<vector<int>>	intMatrix;
     typedef trie_map<double> distrib;
@@ -55,8 +55,12 @@ class rgg {
     tuple<bool, valarray<bool>, valarray<bool>> isFeasible(int playerID, pureStrategy& p);
     double getPureStrategyUtility(int playerID, pureStrategyProfile &p);
 
+    double getExpectedUtility(int playerID, const marginalStrategyProfile& p);
+
     vector<double> getUtilityGradient(int playerID, const pureStrategyProfile &p);
     vector<double> getUtilityGradient(int playerID, const marginalStrategyProfile &p);
+
+    double checkEpsNash(const marginalStrategyProfile& msp);
     
     void addDefaultLT();
 
@@ -65,7 +69,10 @@ class rgg {
 
     Gambit::GameTableRep* toNormalForm();
 
-    void multiLinearSolve(); 
+    pureStrategyProfile iterBRSolve(); 
+
+    marginalStrategyProfile fictitiousPlay(int numIter);
+
     Gambit::List<Gambit::GameStrategy> normalFormBestResponseList(int playerNumber, Gambit::PureStrategyProfile, Gambit::GameTableRep *nfg);
     pureStrategy convertNFGStrategyToRGGStrategy(int playerNumber, Gambit::GameStrategy);
     pureStrategy nfBestResponseListContainsRGGBestResponse(int playerNumber, Gambit::List<Gambit::GameStrategy> bestResponseList, pureStrategy bestResponse);
