@@ -107,8 +107,8 @@ vector<double> rgg::getUtilityGradient(int playerID, const marginalStrategyProfi
     for(int pl=0;pl<numPlayers; ++pl)if (pl!=playerID){
       distrib projStrat;
       for (unsigned int i=0;i<neighbors[node].size();++i){
-        vector<int> con (neighbors.size(),0);
-        con[i]=1;
+        vector<int> con (neighbors[node].size(),0);
+        con.at(i)=1;
 	projStrat.insert(make_pair(con, p[pl][neighbors[node][i]]));
       }
       vector<proj_func*> projFunctions (neighbors[node].size(), new proj_func_SUM);
